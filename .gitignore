@@ -23,3 +23,7 @@ Thumbs.db
 data/
 !data/.gitkeep
 logs/
+*.log
+*.txt
+Set-Location
+cd
