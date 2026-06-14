@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MangaZap - AI 漫剧创作平台</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0a0a;
+      color: #ffffff;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    canvas#particleCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Navbar */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(10, 10, 10, 0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      transition: background 0.3s;
+    }
+
+    .navbar-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #00aaff, #aa88ff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 16px;
+      color: #fff;
+    }
+
+    .logo-text {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 14px;
+      font-weight: 500;
+      color: #9ca3af;
+      text-decoration: none;
+      transition: color 0.2s;
+      position: relative;
+    }
+
+    .nav-links a:hover, .nav-links a.active {
+      color: #00aaff;
+    }
+
+    .nav-links a.active::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #00aaff;
+      border-radius: 1px;
+    }
+
+    .nav-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00aaff, #aa88ff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      color: #fff;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .nav-avatar:hover {
+      opacity: 0.85;
+      transform: scale(1.05);
+    }
+
+    /* Hero */
+    .hero {
+      padding: 140px 24px 80px;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4rem);
+      font-weight: 900;
+      line-height: 1.15;
+      margin-bottom: 20px;
+      letter-spacing: -1px;
+    }
+
+    .hero h1 .gradient {
+      background: linear-gradient(135deg, #00aaff, #aa88ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
+      color: #9ca3af;
+      max-width: 520px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+
+    .cta-btn {
+      display: inline-block;
+      padding: 14px 36px;
+      background: linear-gradient(135deg, #00aaff, #aa88ff);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.3s, opacity 0.2s;
+      box-shadow: 0 8px 32px rgba(0, 170, 255, 0.2);
+      text-decoration: none;
+    }
+
+    .cta-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0, 170, 255, 0.3);
+      opacity: 0.92;
+    }
+
+    .cta-btn:active {
+      transform: translateY(0) scale(0.97);
+    }
+
+    /* Scenes */
+    .scenes {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px 100px;
+    }
+
+    .scenes-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .scene-card {
+      background: #111111;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      padding: 36px 28px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.3s, box-shadow 0.3s;
+      cursor: pointer;
+    }
+
+    .scene-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.5s;
+      border-radius: 20px;
+      pointer-events: none;
+    }
+
+    .scene-card:nth-child(1)::before {
+      background: radial-gradient(ellipse at 30% 20%, rgba(0, 170, 255, 0.12) 0%, transparent 60%);
+    }
+
+    .scene-card:nth-child(2)::before {
+      background: radial-gradient(ellipse at 50% 30%, rgba(170, 136, 255, 0.12) 0%, transparent 60%);
+    }
+
+    .scene-card:nth-child(3)::before {
+      background: radial-gradient(ellipse at 70% 40%, rgba(0, 170, 255, 0.08) 0%, rgba(170, 136, 255, 0.08) 50%, transparent 70%);
+    }
+
+    .scene-card:hover {
+      transform: translateY(-8px);
+      border-color: rgba(0, 170, 255, 0.25);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 40px rgba(0, 170, 255, 0.06);
+    }
+
+    .scene-card:hover::before {
+      opacity: 1;
+    }
+
+    .scene-icon {
+      font-size: 40px;
+      margin-bottom: 18px;
+      display: block;
+    }
+
+    .scene-subtitle {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #00aaff;
+      margin-bottom: 8px;
+    }
+
+    .scene-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+
+    .scene-desc {
+      font-size: 14px;
+      color: #6b7280;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    .scene-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #aa88ff;
+      text-decoration: none;
+      transition: color 0.2s, gap 0.2s;
+    }
+
+    .scene-card:hover .scene-link {
+      color: #00aaff;
+      gap: 10px;
+    }
+
+    .scene-link svg {
+      width: 16px;
+      height: 16px;
+      transition: transform 0.2s;
+    }
+
+    .scene-card:hover .scene-link svg {
+      transform: translateX(2px);
+    }
+
+    /* Image placeholder */
+    .scene-img {
+      width: 100%;
+      height: 180px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      opacity: 0.6;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scene-img::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.03) 50%, transparent 100%);
+      animation: shimmer 3s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    /* Footer */
+    .footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      background: #0a0a0a;
+    }
+
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-copy {
+      font-size: 13px;
+      color: #4b5563;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    .footer-links a {
+      font-size: 13px;
+      color: #4b5563;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: #fff;
+    }
+
+    /* Mobile */
+    .mobile-menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: #9ca3af;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+      }
+
+      .mobile-menu-btn {
+        display: block;
+      }
+
+      .scenes-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .hero {
+        padding: 120px 20px 60px;
+      }
+
+      .footer-inner {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero h1 {
+        font-size: 2rem;
+      }
+
+      .scene-card {
+        padding: 28px 20px;
+      }
+    }
+
+    /* Glow orbs */
+    .glow-orb {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      filter: blur(80px);
+      opacity: 0.15;
+      z-index: 0;
+    }
+
+    .glow-orb-1 {
+      width: 400px;
+      height: 400px;
+      background: #00aaff;
+      top: -100px;
+      right: -100px;
+      animation: float1 20s ease-in-out infinite;
+    }
+
+    .glow-orb-2 {
+      width: 350px;
+      height: 350px;
+      background: #aa88ff;
+      bottom: -80px;
+      left: -80px;
+      animation: float2 25s ease-in-out infinite;
+    }
+
+    @keyframes float1 {
+      0%, 100% { transform: translate(0, 0); }
+      33% { transform: translate(-40px, 30px); }
+      66% { transform: translate(20px, -20px); }
+    }
+
+    @keyframes float2 {
+      0%, 100% { transform: translate(0, 0); }
+      33% { transform: translate(30px, -40px); }
+      66% { transform: translate(-20px, 20px); }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0a0a0a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #1f2937;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #374151;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Particle Canvas -->
+  <canvas id="particleCanvas"></canvas>
+
+  <!-- Glow Orbs -->
+  <div class="glow-orb glow-orb-1"></div>
+  <div class="glow-orb glow-orb-2"></div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="navbar-inner">
+        <a href="#" class="logo">
+          <div class="logo-icon">M</div>
+          <span class="logo-text">MangaZap</span>
+        </a>
+        <ul class="nav-links">
+          <li><a href="#" class="active">首页</a></li>
+          <li><a href="#">剧集</a></li>
+          <li><a href="#">我的</a></li>
+        </ul>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="nav-avatar">U</div>
+          <button class="mobile-menu-btn" onclick="document.querySelector('.nav-links').style.display=document.querySelector('.nav-links').style.display==='flex'?'none':'flex'">☰</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+      <h1>用 AI 创作<span class="gradient">漫剧</span></h1>
+      <p>输入你的创意，AI 自动生成剧本、分镜、配音，一键出片</p>
+      <a href="#" class="cta-btn">开始创作</a>
+    </section>
+
+    <!-- Three Scenes -->
+    <section class="scenes">
+      <div class="scenes-grid">
+
+        <div class="scene-card">
+          <div class="scene-img">🔥</div>
+          <span class="scene-subtitle">Trending</span>
+          <h3 class="scene-title">热门漫剧</h3>
+          <p class="scene-desc">最受欢迎的 AI 漫剧作品，感受创作者的无限灵感</p>
+          <a href="#" class="scene-link">
+            探索
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+
+        <div class="scene-card">
+          <div class="scene-img">⭐</div>
+          <span class="scene-subtitle">Featured</span>
+          <h3 class="scene-title">精选推荐</h3>
+          <p class="scene-desc">编辑精选的高质量漫剧，每一部都值得细细品味</p>
+          <a href="#" class="scene-link">
+            探索
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+
+        <div class="scene-card">
+          <div class="scene-img">🆕</div>
+          <span class="scene-subtitle">Latest</span>
+          <h3 class="scene-title">最新上线</h3>
+          <p class="scene-desc">刚刚出炉的新鲜作品，第一时间感受最新创意</p>
+          <a href="#" class="scene-link">
+            探索
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-inner">
+        <p class="footer-copy">&copy; 2026 MangaZap. All rights reserved.</p>
+        <div class="footer-links">
+          <a href="#">Twitter</a>
+          <a href="#">GitHub</a>
+          <a href="#">Discord</a>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Particle Script -->
+  <script>
+    (function() {
+      const canvas = document.getElementById('particleCanvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+      const PARTICLE_COUNT = 50;
+      const CONNECTION_DIST = 120;
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+
+      function createParticles() {
+        particles = [];
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+          particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            vx: (Math.random() - 0.5) * 0.3,
+            vy: (Math.random() - 0.5) * 0.3,
+            r: Math.random() * 2 + 0.5,
+            opacity: Math.random() * 0.3 + 0.1,
+          });
+        }
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Connections
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < CONNECTION_DIST) {
+              const alpha = (1 - dist / CONNECTION_DIST) * 0.15;
+              ctx.strokeStyle = 'rgba(0, 170, 255, ' + alpha + ')';
+              ctx.lineWidth = 0.5;
+              ctx.beginPath();
+              ctx.moveTo(particles[i].x, particles[i].y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.stroke();
+            }
+          }
+        }
+
+        // Particles
+        for (const p of particles) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(170, 136, 255, ' + p.opacity + ')';
+          ctx.fill();
+        }
+      }
+
+      function update() {
+        for (const p of particles) {
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+          if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+          p.x = Math.max(0, Math.min(canvas.width, p.x));
+          p.y = Math.max(0, Math.min(canvas.height, p.y));
+        }
+      }
+
+      function animate() {
+        update();
+        draw();
+        requestAnimationFrame(animate);
+      }
+
+      resize();
+      createParticles();
+      animate();
+
+      window.addEventListener('resize', function() {
+        resize();
+        createParticles();
+      });
+    })();
+  </script>
+
+</body>
+</html>
