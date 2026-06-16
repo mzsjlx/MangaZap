@@ -344,10 +344,23 @@ export async function generateVoice(data: {
 
 // ===== Video Generation API =====
 
+export interface VideoTaskResponse {
+  task_id: string
+  id_type: string
+  status: string
+}
+
+export interface VideoStatusResponse {
+  status: string  // "pending", "completed", "failed"
+  video_url?: string
+  error?: string
+}
+
 export interface VideoGenerateResponse {
   video_url: string
-  task_id?: string
 }
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 export async function generateVideo(data: {
   image_url: string
@@ -357,10 +370,59 @@ export async function generateVideo(data: {
   base_url?: string
   num_frames?: number
   frame_rate?: number
+  onProgress?: (elapsed: number) => void
 }): Promise<VideoGenerateResponse> {
-  return fetchApi('/video/generate', {
+  const { onProgress, ...requestData } = data
+
+  // 1. 创建任务
+  const task = await fetchApi<VideoTaskResponse>('/video/generate', {
     method: 'POST',
-    body: JSON.stringify(data),
-    timeout: 300000, // 5分钟超时（视频生成需要141秒+）
+    body: JSON.stringify(requestData),
+    timeout: 30000,
   })
+
+  console.log(`[Video] Task created: ${task.id_type}=${task.task_id}`)
+
+  // 2. 轮询查询状态（每5秒查一次，最多120次 = 10分钟）
+  const params = new URLSearchParams({
+    api_key: data.api_key,
+    base_url: data.base_url || '',
+    id_type: task.id_type,
+  })
+
+  for (let attempt = 0; attempt < 120; attempt++) {
+    await sleep(5000)
+    const elapsed = (attempt + 1) * 5
+
+    if (onProgress) onProgress(elapsed)
+
+    try {
+      const status = await fetchApi<VideoStatusResponse>(
+        `/video/status/${task.task_id}?${params.toString()}`,
+        { timeout: 15000 }
+      )
+
+      console.log(`[Video] Poll ${attempt + 1}/120, status: ${status.status}, elapsed: ${elapsed}s`)
+
+      if (status.status === 'completed' && status.video_url) {
+        console.log(`[Video] SUCCESS after ${elapsed}s`)
+        return { video_url: status.video_url }
+      }
+
+      if (status.status === 'failed') {
+        throw new Error(status.error || 'Video generation failed')
+      }
+
+      // status === 'pending' -> 继续轮询
+    } catch (err: any) {
+      // 网络错误时继续轮询
+      if (err.message?.includes('timeout') || err.message?.includes('network')) {
+        console.warn(`[Video] Poll ${attempt + 1} network error, retrying...`)
+        continue
+      }
+      throw err
+    }
+  }
+
+  throw new Error('Video generation timeout (10 minutes)')
 }

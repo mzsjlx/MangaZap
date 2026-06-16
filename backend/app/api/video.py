@@ -1,5 +1,4 @@
 ﻿import httpx
-import asyncio
 import json
 import logging
 import traceback
@@ -21,19 +20,25 @@ class VideoGenerateRequest(BaseModel):
     frame_rate: int = 24
 
 
-class VideoGenerateResponse(BaseModel):
-    video_url: str
+class VideoTaskResponse(BaseModel):
+    task_id: str
+    id_type: str  # "video_id" or "task_id"
+    status: str = "pending"
 
 
-@router.post("/api/video/generate", response_model=VideoGenerateResponse)
-async def generate_video(request: VideoGenerateRequest):
-    """调用 Agnes AI 图生视频 API"""
-    print(f"[video] START, model: {request.model}")
+class VideoStatusResponse(BaseModel):
+    status: str  # "pending", "completed", "failed"
+    video_url: str | None = None
+    error: str | None = None
+
+
+@router.post("/api/video/generate", response_model=VideoTaskResponse)
+async def create_video_task(request: VideoGenerateRequest):
+    """创建视频生成任务，返回 task_id 供前端轮询"""
+    print(f"[video] CREATE TASK, model: {request.model}")
     print(f"[video] image_url: {request.image_url[:120] if request.image_url else 'EMPTY'}")
     print(f"[video] base_url: {request.base_url}")
     print(f"[video] api_key: {'SET (' + str(len(request.api_key)) + ' chars)' if request.api_key else 'EMPTY'}")
-    print(f"[video] prompt length: {len(request.prompt)}")
-    logger.info(f"[video.generate] START, model={request.model}, base_url={request.base_url}, api_key_len={len(request.api_key)}, image_url={request.image_url[:80]}...")
 
     # Validate inputs
     if not request.api_key:
@@ -47,14 +52,11 @@ async def generate_video(request: VideoGenerateRequest):
 
     base = request.base_url.rstrip('/')
     create_url = f"{base}/videos"
-    poll_url = f"{base}/agnesapi"
 
     print(f"[video] create_url: {create_url}")
-    print(f"[video] poll_url: {poll_url}")
 
-    async with httpx.AsyncClient() as client:
-        # 1. 创建任务
-        try:
+    try:
+        async with httpx.AsyncClient() as client:
             payload = {
                 "model": request.model,
                 "prompt": request.prompt,
@@ -77,7 +79,6 @@ async def generate_video(request: VideoGenerateRequest):
             resp.raise_for_status()
             resp_data = resp.json()
             print(f"[video] Agnes create response: {json.dumps(resp_data, ensure_ascii=False)[:300]}")
-            logger.info(f"[video.generate] Agnes create response: {resp_data}")
 
             video_id = resp_data.get("video_id")
             task_id = resp_data.get("task_id")
@@ -87,76 +88,74 @@ async def generate_video(request: VideoGenerateRequest):
             query_id = video_id or task_id
             id_type = "video_id" if video_id else "task_id"
             print(f"[video] Task created: {id_type}={query_id}")
-            logger.info(f"[video.generate] Task created: {id_type}={query_id}")
 
-        except httpx.HTTPStatusError as e:
-            error_text = e.response.text[:500]
-            print(f"[video] Agnes API error: {e.response.status_code} - {error_text}")
-            logger.error(f"[video.generate] Agnes API error: {e.response.status_code} - {error_text}")
-            raise HTTPException(502, f"Agnes API error: {e.response.status_code} - {error_text}")
-        except httpx.RequestError as e:
-            print(f"[video] Network error: {type(e).__name__}: {repr(e)}")
-            logger.error(f"[video.generate] Network error: {type(e).__name__}: {repr(e)}")
-            raise HTTPException(502, f"Network error connecting to {create_url}: {type(e).__name__}: {str(e) or repr(e)}")
-        except HTTPException:
-            raise
-        except Exception as e:
-            print(f"[video] Unexpected error: {type(e).__name__}: {repr(e)}")
-            traceback.print_exc()
-            logger.error(f"[video.generate] Unexpected error: {type(e).__name__}: {repr(e)}")
-            raise HTTPException(500, f"Failed to create video task: {type(e).__name__}: {str(e) or repr(e)}")
+            return VideoTaskResponse(task_id=query_id, id_type=id_type, status="pending")
 
-        # 2. 轮询结果（最多 5 分钟）
-        for attempt in range(60):
-            await asyncio.sleep(5)
+    except httpx.HTTPStatusError as e:
+        error_text = e.response.text[:500]
+        print(f"[video] Agnes API error: {e.response.status_code} - {error_text}")
+        logger.error(f"[video.create] Agnes API error: {e.response.status_code} - {error_text}")
+        raise HTTPException(502, f"Agnes API error: {e.response.status_code} - {error_text}")
+    except httpx.RequestError as e:
+        print(f"[video] Network error: {type(e).__name__}: {repr(e)}")
+        logger.error(f"[video.create] Network error: {type(e).__name__}: {repr(e)}")
+        raise HTTPException(502, f"Network error connecting to {create_url}: {type(e).__name__}: {str(e) or repr(e)}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[video] Unexpected error: {type(e).__name__}: {repr(e)}")
+        traceback.print_exc()
+        logger.error(f"[video.create] Unexpected error: {type(e).__name__}: {repr(e)}")
+        raise HTTPException(500, f"Failed to create video task: {type(e).__name__}: {str(e) or repr(e)}")
 
-            try:
-                if video_id:
-                    result_url = f"{poll_url}?video_id={video_id}"
-                else:
-                    result_url = f"{base}/v1/videos/{task_id}"
 
-                result = await client.get(
-                    result_url,
-                    headers={"Authorization": f"Bearer {request.api_key}"},
-                    timeout=10,
-                )
-                result.raise_for_status()
-                data = result.json()
+@router.get("/api/video/status/{task_id}", response_model=VideoStatusResponse)
+async def get_video_status(task_id: str, api_key: str, base_url: str = VIDEO_BASE_URL, id_type: str = "video_id"):
+    """查询视频生成任务状态"""
+    base = base_url.rstrip('/')
 
-                print(f"[video] Attempt {attempt + 1}/60, response: {json.dumps(data, ensure_ascii=False, default=str)[:500]}")
-                logger.info(f"[video.generate] Attempt {attempt + 1}/60, full response: {json.dumps(data, ensure_ascii=False, default=str)[:1000]}")
+    if id_type == "video_id":
+        poll_url = f"{base}/agnesapi?video_id={task_id}"
+    else:
+        poll_url = f"{base}/v1/videos/{task_id}"
 
-                status = data.get("status", "unknown")
-                print(f"[video] Task {query_id} status: {status} (attempt {attempt + 1}/60)")
+    print(f"[video] POLL status for {id_type}={task_id}")
 
-                if status in ["completed", "done", "success", "finished"]:
-                    video_url = data.get("remixed_from_video_id")
-                    if not video_url:
-                        print(f"[video] Completed but no URL, full response: {data}")
-                        raise HTTPException(500, "Video completed but no URL returned")
-                    print(f"[video] SUCCESS, video_url: {video_url[:100]}...")
-                    logger.info(f"[video.generate] Success, video_url: {video_url}")
-                    return VideoGenerateResponse(video_url=video_url)
+    try:
+        async with httpx.AsyncClient() as client:
+            result = await client.get(
+                poll_url,
+                headers={"Authorization": f"Bearer {api_key}"},
+                timeout=10,
+            )
+            result.raise_for_status()
+            data = result.json()
 
-                elif status in ["failed", "error", "cancelled"]:
-                    error = data.get("error") or data.get("message") or "Unknown error"
-                    print(f"[video] Task failed: {error}, full response: {data}")
-                    logger.error(f"[video.generate] Task failed: {error}, full response: {data}")
-                    raise HTTPException(500, f"Video generation failed: {error}")
+            status = data.get("status", "unknown")
+            print(f"[video] Task {task_id} status: {status}")
 
-                else:
-                    if attempt % 6 == 0:
-                        print(f"[video] Still processing... status={status}")
-                        logger.info(f"[video.generate] Still processing, status={status}")
+            # 完成
+            if status in ["completed", "done", "success", "finished"]:
+                video_url = data.get("remixed_from_video_id")
+                if not video_url:
+                    print(f"[video] Completed but no URL, response: {data}")
+                    return VideoStatusResponse(status="failed", error="Video completed but no URL returned")
+                print(f"[video] SUCCESS, video_url: {video_url[:100]}...")
+                return VideoStatusResponse(status="completed", video_url=video_url)
 
-            except httpx.HTTPStatusError as e:
-                print(f"[video] Poll error: {e.response.status_code}")
-                logger.warning(f"[video.generate] Poll error: {e.response.status_code}")
-                continue
-            except Exception as e:
-                print(f"[video] Poll exception: {type(e).__name__}: {e}")
-                logger.warning(f"[video.generate] Poll exception: {type(e).__name__}: {e}")
-                continue
+            # 失败
+            elif status in ["failed", "error", "cancelled"]:
+                error = data.get("error") or data.get("message") or "Unknown error"
+                print(f"[video] Task failed: {error}")
+                return VideoStatusResponse(status="failed", error=str(error))
 
-        raise HTTPException(504, "Video generation timeout (5 minutes)")
+            # 还在处理中
+            else:
+                return VideoStatusResponse(status="pending")
+
+    except httpx.HTTPStatusError as e:
+        print(f"[video] Poll HTTP error: {e.response.status_code}")
+        return VideoStatusResponse(status="pending")
+    except Exception as e:
+        print(f"[video] Poll exception: {type(e).__name__}: {e}")
+        return VideoStatusResponse(status="pending")

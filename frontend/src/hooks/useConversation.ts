@@ -2185,6 +2185,11 @@ Remember: ONLY output the 3 prompts. No other text.`
             api_key: videoApiKey,
             model: videoModel,
             base_url: videoBaseUrl,
+            onProgress: (elapsed) => {
+              updateMessage(progressMsgId, {
+                content: `正在为镜头 ${i + 1}/${frames.length} 图片 ${imgIdx + 1}/${frameImages.length} 生成视频... (${elapsed}s)`,
+              })
+            },
           })
 
           setKeyFrameVideos(prev => ({ ...prev, [key]: result.video_url }))
