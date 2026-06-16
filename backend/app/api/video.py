@@ -137,14 +137,13 @@ async def create_video_task(request: VideoGenerateRequest):
 
 
 @router.get("/api/video/status/{task_id}", response_model=VideoStatusResponse)
-async def get_video_status(task_id: str, api_key: str, base_url: str = VIDEO_BASE_URL, id_type: str = "video_id"):
+async def get_video_status(task_id: str, api_key: str, base_url: str = VIDEO_BASE_URL, id_type: str = "task_id"):
     """查询视频生成任务状态"""
     base = base_url.rstrip('/')
 
-    if id_type == "video_id":
-        poll_url = f"{base}/agnesapi?video_id={task_id}"
-    else:
-        poll_url = f"{base}/v1/videos/{task_id}"
+    # Agnes API 轮询 URL: /video/generations/{task_id}
+    poll_url = f"{base}/video/generations/{task_id}"
+    print(f"[video] POLL {poll_url}")
 
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(POLL_TIMEOUT)) as client:
@@ -157,10 +156,11 @@ async def get_video_status(task_id: str, api_key: str, base_url: str = VIDEO_BAS
 
             status = data.get("status", "unknown")
             print(f"[video] Task {task_id} status: {status}")
+            print(f"[video] Full response: {json.dumps(data, ensure_ascii=False, default=str)[:500]}")
 
             # 完成
             if status in ["completed", "done", "success", "finished"]:
-                video_url = data.get("remixed_from_video_id")
+                video_url = data.get("remixed_from_video_id") or data.get("video_url") or data.get("url")
                 if not video_url:
                     print(f"[video] Completed but no URL, response: {data}")
                     return VideoStatusResponse(status="failed", error="Video completed but no URL returned")
@@ -173,7 +173,7 @@ async def get_video_status(task_id: str, api_key: str, base_url: str = VIDEO_BAS
                 print(f"[video] Task failed: {error}")
                 return VideoStatusResponse(status="failed", error=str(error))
 
-            # 还在处理中
+            # 还在处理中 (queued, processing, etc.)
             else:
                 return VideoStatusResponse(status="pending")
 
