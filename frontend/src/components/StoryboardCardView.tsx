@@ -71,8 +71,8 @@ export default function StoryboardCardView({ content, images, onImageClick, onGe
         </div>
       )}
 
-      {shots.map((shot) => (
-        <div key={shot.index} className="rounded-xl border border-white/[0.06] bg-[#0f1520] p-4 group relative">
+      {shots.map((shot, i) => (
+        <div key={`shot-${i}-${shot.index}`} className="rounded-xl border border-white/[0.06] bg-[#0f1520] p-4 group relative">
           <div className="flex items-center gap-2 mb-3">
             <FilmIcon className="w-4 h-4 text-blue-400" />
             <h4 className="text-sm font-semibold text-white">镜{['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'][shot.index - 1] || shot.index} · {shot.title}</h4>

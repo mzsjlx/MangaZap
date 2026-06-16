@@ -102,7 +102,7 @@ function StoryboardPanel({ content, onImageClick, onPlayVideo, keyElementsImages
       {sections.map((block, i) => {
         return (
         <div
-          key={i}
+          key={`section-${i}`}
           className="rounded-lg border border-white/[0.06] p-4 group relative"
           style={{ background: 'linear-gradient(135deg, #101828 0%, #0c1020 100%)' }}
         >
@@ -146,7 +146,7 @@ function StoryboardPanel({ content, onImageClick, onPlayVideo, keyElementsImages
                 const videoKey = `${i}_${imgIndex}`
                 const videoUrl = keyFrameVideos?.[videoKey]
                 return (
-                  <div key={imgIndex} className="flex flex-col gap-1">
+                  <div key={`kf-${i}-${imgIndex}`} className="flex flex-col gap-1">
                     <img
                       src={url}
                       alt={`画面${imgIndex + 1}`}
