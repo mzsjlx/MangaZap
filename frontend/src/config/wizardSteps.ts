@@ -1,3 +1,5 @@
+import { DEFAULTS } from './defaults'
+
 export interface WizardOption {
   id: string
   label: string
@@ -103,7 +105,7 @@ export const VOICE_OPTIONS: WizardOption[] = [
 ]
 
 export const API_PROVIDERS = [
-  { id: 'mimo', label: 'MiMo', baseUrl: 'https://api.mimo.com/v1', model: 'mimo-v2.5' },
+  { id: 'mimo', label: 'MiMo', baseUrl: DEFAULTS.CHAT_BASE_URL, model: DEFAULTS.CHAT_MODEL },
   { id: 'openai', label: 'OpenAI', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o' },
   { id: 'custom', label: '自定义兼容API', baseUrl: '', model: '' },
 ] as const

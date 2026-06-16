@@ -5,6 +5,7 @@ import logging
 from typing import Callable, Any
 from concurrent.futures import ThreadPoolExecutor
 from .platform import platform_detector
+from . import defaults
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +97,7 @@ class SecureExecutor:
             import httpx
 
             response = httpx.post(
-                "https://api.mimo.com/v1/chat/completions",
+                f"{defaults.CHAT_BASE_URL}/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}"},
                 json={
                     "model": model,

@@ -2,6 +2,7 @@ import logging
 import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from app.core.defaults import IMAGE_BASE_URL, IMAGE_MODEL, IMAGE_SIZE
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -10,9 +11,9 @@ router = APIRouter()
 class ImageGenerateRequest(BaseModel):
     prompt: str
     api_key: str
-    model: str = "agnes-image-2.0-flash"
-    base_url: str = "https://apihub.agnes-ai.com/v1"
-    size: str = "1024x1024"
+    model: str = IMAGE_MODEL
+    base_url: str = IMAGE_BASE_URL
+    size: str = IMAGE_SIZE
     ref_image_url: str | None = None
 
 
@@ -25,7 +26,7 @@ async def generate_image(request: ImageGenerateRequest):
     """Generate an image using Agnes AI API (or compatible API)."""
     print(f"[image] START, prompt length: {len(request.prompt)}, model: {request.model}")
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=180.0) as client:
             url = f"{request.base_url.rstrip('/')}/images/generations"
             logger.info(f"[image.generate] Calling {url} with model={request.model}, has_ref_image={bool(request.ref_image_url)}")
 

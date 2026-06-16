@@ -8,6 +8,7 @@ import WorkspaceNav, { type ExportType } from '../components/WorkspaceNav'
 import { exportScriptMarkdown, exportScriptTxt, exportStoryboardJson, exportStoryboardCsv, exportAll } from '../utils/export'
 import { generateImage, downloadProjectImages, uploadFile } from '../services/api'
 import { loadApiKeys } from '../utils/apiKeys'
+import { DEFAULTS } from '../config/defaults'
 import { getSelectedStyle, getStylePromptPrefix } from '../config/wizardSteps'
 import ChatPanel from '../components/ChatPanel'
 import KeyElementsCardView from '../components/KeyElementsCardView'
@@ -465,8 +466,8 @@ export default function WorkspacePage() {
 
     const keys = loadApiKeys()
     const apiKey = keys.image_api_key
-    const model = keys.image_model || 'agnes-image-2.0-flash'
-    const baseUrl = keys.image_base_url || 'https://apihub.agnes-ai.com/v1'
+    const model = keys.image_model || DEFAULTS.IMAGE_MODEL
+    const baseUrl = keys.image_base_url || DEFAULTS.IMAGE_BASE_URL
 
     if (!apiKey) {
       alert('请先在设置中配置图像 API Key')

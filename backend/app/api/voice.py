@@ -4,6 +4,7 @@ import httpx
 import numpy as np
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from app.core.defaults import TTS_BASE_URL, TTS_MODEL
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -11,10 +12,10 @@ router = APIRouter()
 
 class VoiceGenerateRequest(BaseModel):
     text: str
-    model: str = "mimo-v2.5-tts"
+    model: str = TTS_MODEL
     voice: str = ""
     api_key: str
-    base_url: str = "https://token-plan-cn.xiaomimimo.com/v1"
+    base_url: str = TTS_BASE_URL
 
 
 class VoiceGenerateResponse(BaseModel):
@@ -50,7 +51,7 @@ async def generate_voice(request: VoiceGenerateRequest):
     """Generate TTS audio via MiMo chat completions endpoint."""
     print(f"[voice] START, text length: {len(request.text)}, model: {request.model}")
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             url = f"{request.base_url.rstrip('/')}/chat/completions"
             logger.info(f"[voice.generate] Calling {url} with model={request.model}")
 

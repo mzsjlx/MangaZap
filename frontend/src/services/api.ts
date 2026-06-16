@@ -2,7 +2,7 @@ const API_BASE = '/api'
 
 export async function fetchApi<T>(path: string, options?: RequestInit & { timeout?: number }): Promise<T> {
   const controller = new AbortController()
-  const timeoutMs = options?.timeout || 60000
+  const timeoutMs = options?.timeout || 120000
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
@@ -17,7 +17,12 @@ export async function fetchApi<T>(path: string, options?: RequestInit & { timeou
     clearTimeout(timeoutId)
 
     if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${response.statusText}`)
+      let detail = response.statusText
+      try {
+        const errBody = await response.json()
+        detail = errBody.detail || detail
+      } catch {}
+      throw new Error(`API error: ${response.status} ${detail}`)
     }
     return response.json()
   } catch (err: any) {
@@ -234,6 +239,7 @@ export async function chatApi(data: {
   return fetchApi('/chat', {
     method: 'POST',
     body: JSON.stringify(data),
+    timeout: 180000,
   })
 }
 
@@ -252,6 +258,7 @@ export async function generateImage(data: {
   return fetchApi('/image/generate', {
     method: 'POST',
     body: JSON.stringify(data),
+    timeout: 180000,
   })
 }
 
@@ -331,6 +338,7 @@ export async function generateVoice(data: {
   return fetchApi('/voice/generate', {
     method: 'POST',
     body: JSON.stringify(data),
+    timeout: 120000,
   })
 }
 

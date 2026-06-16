@@ -3,6 +3,7 @@ import logging
 import re
 import httpx
 from fastapi import APIRouter, HTTPException
+from app.core import defaults
 
 logger = logging.getLogger(__name__)
 
@@ -562,7 +563,7 @@ Prompt 3: [shot: close-up, low angle], [subject: girl's hand tracing wood grain 
 # ==================== Core LLM Utility ====================
 
 async def _call_llm(api_key: str, api_base: str, model: str, system: str, user: str) -> str:
-    async with httpx.AsyncClient(timeout=120.0) as client:
+    async with httpx.AsyncClient(timeout=180.0) as client:
         response = await client.post(
             f"{api_base.rstrip('/')}/chat/completions",
             headers={
@@ -589,7 +590,7 @@ async def _direct_llm(api_key: str, api_base: str, model: str, messages: list) -
     """Directly pass messages to LLM without any processing."""
     print(f"[direct_llm] START, messages: {len(messages)}, model: {model}")
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=180.0) as client:
             response = await client.post(
                 f"{api_base.rstrip('/')}/chat/completions",
                 headers={
@@ -1418,8 +1419,8 @@ async def chat(data: dict):
     api_config = data.get("api_config", {})
 
     api_key = api_config.get("key", "")
-    api_base = api_config.get("base_url", "https://api.mimo.com/v1")
-    model = api_config.get("model", "mimo-v2.5")
+    api_base = api_config.get("base_url", defaults.CHAT_BASE_URL)
+    model = api_config.get("model", defaults.CHAT_MODEL)
 
     if not api_key:
         raise HTTPException(status_code=400, detail="API key is required. Please configure your API key first.")

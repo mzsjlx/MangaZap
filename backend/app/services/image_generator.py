@@ -3,6 +3,7 @@ import logging
 import httpx
 from pathlib import Path
 from typing import AsyncGenerator
+from app.core import defaults
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +28,8 @@ async def generate_images_stream(
     image_paths = []
 
     agnes_key = (api_keys or {}).get("image_api_key") or os.getenv("AGNES_API_KEY", "")
-    agnes_model = (api_keys or {}).get("image_model") or "agnes-image-2.0-flash"
-    agnes_base_url = (api_keys or {}).get("image_base_url") or "https://apihub.agnes-ai.com/v1"
+    agnes_model = (api_keys or {}).get("image_model") or defaults.IMAGE_MODEL
+    agnes_base_url = (api_keys or {}).get("image_base_url") or defaults.IMAGE_BASE_URL
     replicate_token = (api_keys or {}).get("image_api_key") or REPLICATE_API_TOKEN
     stability_key = (api_keys or {}).get("image_api_key") or STABILITY_API_KEY
     has_agnes = bool(agnes_key)
@@ -145,10 +146,12 @@ async def _generate_with_agnes(
     prompt: str,
     output_path: Path,
     api_key: str,
-    model: str = "agnes-image-2.0-flash",
-    base_url: str = "https://apihub.agnes-ai.com/v1",
+    model: str | None = None,
+    base_url: str | None = None,
 ):
     """Generate image using Agnes AI API (or compatible OpenAI-format API)."""
+    model = model or defaults.IMAGE_MODEL
+    base_url = base_url or defaults.IMAGE_BASE_URL
     async with httpx.AsyncClient(timeout=120.0) as client:
         url = f"{base_url.rstrip('/')}/images/generations"
         response = await client.post(

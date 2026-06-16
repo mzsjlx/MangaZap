@@ -3,6 +3,7 @@ import { WIZARD_STEP_IDS, DURATION_MAP, VOICE_OPTIONS, getSelectedStyle, getStyl
 import { chatApi, createProject, saveProjectState, getProjectDetail, generateVoice, generateVideo } from '../services/api'
 import { loadApiKeys } from '../utils/apiKeys'
 import { playAudio, stopAudio, isAudioPlaying } from '../utils/audioPlayer'
+import { DEFAULTS } from '../config/defaults'
 import type { WizardOption, Question } from '../config/wizardSteps'
 
 function getImageUrl(value: string | string[] | undefined): string | null {
@@ -12,7 +13,7 @@ function getImageUrl(value: string | string[] | undefined): string | null {
 
 // Simplify name by removing parenthetical content
 function simplifyName(name: string): string {
-  return name.replace(/[（(].*?[）)]/g, '').trim()
+  return name.replace(/[锛?].*?[锛?]/g, '').trim()
 }
 
 // Find best match in image map using fuzzy matching
@@ -69,21 +70,21 @@ interface ParsedFrame {
 }
 
 function extractField(block: string, fieldName: string): string {
-  const regex = new RegExp(`[-*]\\s*\\*?\\*?${fieldName}\\*?\\*?[：:]\\s*([\\s\\S]*?)(?=\\n[-*]\\s*\\*?\\*?|$)`)
+  const regex = new RegExp(`[-*]\\s*\\*?\\*?${fieldName}\\*?\\*?[锛?]\\s*([\\s\\S]*?)(?=\\n[-*]\\s*\\*?\\*?|$)`)
   const match = block.match(regex)
   return match ? match[1].trim() : ''
 }
 
 // Extract shot type from content keywords
 function extractShotTypeFromContent(content: string): string {
-  if (content.includes('大远景')) return '大远景'
-  if (content.includes('远景')) return '远景'
-  if (content.includes('全景')) return '全景'
-  if (content.includes('中景')) return '中景'
-  if (content.includes('近景')) return '近景'
-  if (content.includes('大特写')) return '大特写'
-  if (content.includes('特写')) return '特写'
-  return '中景'  // default
+  if (content.includes('澶ц繙鏅?)) return '澶ц繙鏅?
+  if (content.includes('杩滄櫙')) return '杩滄櫙'
+  if (content.includes('鍏ㄦ櫙')) return '鍏ㄦ櫙'
+  if (content.includes('涓櫙')) return '涓櫙'
+  if (content.includes('杩戞櫙')) return '杩戞櫙'
+  if (content.includes('澶х壒鍐?)) return '澶х壒鍐?
+  if (content.includes('鐗瑰啓')) return '鐗瑰啓'
+  return '涓櫙'  // default
 }
 
 // Clean content by removing shot type keywords
@@ -91,12 +92,12 @@ function cleanContent(fullContent: string): string {
   let cleaned = fullContent
 
   // Remove leading shot type keywords
-  const shotTypeKeywords = ['大远景', '远景', '全景', '中景', '近景', '特写', '大特写']
+  const shotTypeKeywords = ['澶ц繙鏅?, '杩滄櫙', '鍏ㄦ櫙', '涓櫙', '杩戞櫙', '鐗瑰啓', '澶х壒鍐?]
   for (const keyword of shotTypeKeywords) {
     if (cleaned.startsWith(keyword)) {
       cleaned = cleaned.substring(keyword.length).trim()
       // Remove leading punctuation
-      cleaned = cleaned.replace(/^[。.，,、]/, '').trim()
+      cleaned = cleaned.replace(/^[銆?锛?銆乚/, '').trim()
       break
     }
   }
@@ -116,26 +117,26 @@ function getVisualDescriptions(
 
   // Parse character description
   if (characterName) {
-    const charRegex = new RegExp(`### (?:主角|配角)[：:]\\s*${characterName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\n([\\s\\S]*?)(?=### (?:主角|配角)|## |$)`, 'i')
+    const charRegex = new RegExp(`### (?:涓昏|閰嶈)[锛?]\\s*${characterName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\n([\\s\\S]*?)(?=### (?:涓昏|閰嶈)|## |$)`, 'i')
     const charMatch = keyElementsContent.match(charRegex)
     if (charMatch) {
       characterVisual = charMatch[1]
         .replace(/\*\*([^*]+)\*\*/g, '$1')
         .replace(/^[\-\*]\s+/gm, '')
-        .replace(/\n+/g, '，')
+        .replace(/\n+/g, '锛?)
         .trim()
     }
   }
 
   // Parse scene description
   if (sceneName) {
-    const sceneRegex = new RegExp(`### (?:主要场景|次要场景)[一二三四五六七八九十\\d]*[：:]\\s*${sceneName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\n([\\s\\S]*?)(?=### (?:主要场景|次要场景)|## |$)`, 'i')
+    const sceneRegex = new RegExp(`### (?:涓昏鍦烘櫙|娆¤鍦烘櫙)[涓€浜屼笁鍥涗簲鍏竷鍏節鍗乗\d]*[锛?]\\s*${sceneName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\n([\\s\\S]*?)(?=### (?:涓昏鍦烘櫙|娆¤鍦烘櫙)|## |$)`, 'i')
     const sceneMatch = keyElementsContent.match(sceneRegex)
     if (sceneMatch) {
       sceneVisual = sceneMatch[1]
         .replace(/\*\*([^*]+)\*\*/g, '$1')
         .replace(/^[\-\*]\s+/gm, '')
-        .replace(/\n+/g, '，')
+        .replace(/\n+/g, '锛?)
         .trim()
     }
   }
@@ -148,49 +149,49 @@ function parseStoryboardFrames(storyboardText: string): ParsedFrame[] {
   
   // Remove metadata headers
   const cleanText = storyboardText
-    .replace(/^#\s*分镜设计.*?\n/, '')
-    .replace(/^\*?\*?总镜头数\*?\*?[：:]\s*\d+.*?\n/, '')
-    .replace(/^\*?\*?预计总时长\*?\*?[：:].*?\n/, '')
+    .replace(/^#\s*鍒嗛暅璁捐.*?\n/, '')
+    .replace(/^\*?\*?鎬婚暅澶存暟\*?\*?[锛?]\s*\d+.*?\n/, '')
+    .replace(/^\*?\*?棰勮鎬绘椂闀縗*?\*?[锛?].*?\n/, '')
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
   
-  // Split by **镜 to get each shot block
-  const blocks = cleanText.split(/(?=\*\*镜[一二三四五六七八九十\d])/g).filter(b => b.trim().startsWith('**镜'))
+  // Split by **闀?to get each shot block
+  const blocks = cleanText.split(/(?=\*\*闀淸涓€浜屼笁鍥涗簲鍏竷鍏節鍗乗d])/g).filter(b => b.trim().startsWith('**闀?))
   
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i]
     const lines = block.split('\n')
     
-    // Extract title from first line: **镜一 · 标题**
+    // Extract title from first line: **闀滀竴 路 鏍囬**
     const titleLine = lines[0].trim()
     let title = titleLine
-      .replace(/^\*\*镜[一二三四五六七八九十\d]+\s*[·\-]\s*/, '')
-      .replace(/[（(][^）)]+[）)]/, '')
+      .replace(/^\*\*闀淸涓€浜屼笁鍥涗簲鍏竷鍏節鍗乗d]+\s*[路\-]\s*/, '')
+      .replace(/[锛?][^锛?]+[锛?]/, '')
       .replace(/\*\*$/, '')
       .trim()
-    if (!title) title = `镜头${i + 1}`
+    if (!title) title = `闀滃ご${i + 1}`
     
     // Extract description: lines after title until character/scene tags
     let description = ''
     for (let j = 1; j < lines.length; j++) {
       const line = lines[j].trim()
-      if (line.startsWith('角色：') || line.startsWith('- **角色**') ||
-          line.startsWith('场景：') || line.startsWith('- **场景**')) break
+      if (line.startsWith('瑙掕壊锛?) || line.startsWith('- **瑙掕壊**') ||
+          line.startsWith('鍦烘櫙锛?) || line.startsWith('- **鍦烘櫙**')) break
       description += line + '\n'
     }
     description = description.trim()
     
     // Extract character and scene from raw block
-    const roleMatch = block.match(/[-*]\s*\*\*角色\*\*[：:]\s*(.+)/)
-    const sceneMatch = block.match(/[-*]\s*\*\*场景\*\*[：:]\s*(.+)/)
-    const characterName = roleMatch ? roleMatch[1].split(/[,，、]/)[0].trim() : null
+    const roleMatch = block.match(/[-*]\s*\*\*瑙掕壊\*\*[锛?]\s*(.+)/)
+    const sceneMatch = block.match(/[-*]\s*\*\*鍦烘櫙\*\*[锛?]\s*(.+)/)
+    const characterName = roleMatch ? roleMatch[1].split(/[,锛屻€乚/)[0].trim() : null
     const sceneName = sceneMatch ? sceneMatch[1].trim() : null
     
     console.log(`[DEBUG] Frame ${i}: title="${title}", descLength=${description.length}`)
     
     frames.push({
       order: i,
-      title: `镜头${i + 1} · ${title}`,
+      title: `闀滃ご${i + 1} 路 ${title}`,
       timeRange: '',
       shotType: extractShotTypeFromContent(description),
       angle: '',
@@ -215,8 +216,8 @@ function resolveRefImage(
   selectedRefImages: Record<string, string>,
   keyElemImages: Record<string, string[]>
 ): string | undefined {
-  // Handle multiple character names (e.g., "林晓，陈晨") - take first one
-  const firstCharName = characterName ? characterName.split(/[,，、]/)[0].trim() : null
+  // Handle multiple character names (e.g., "鏋楁檽锛岄檲鏅?) - take first one
+  const firstCharName = characterName ? characterName.split(/[,锛屻€乚/)[0].trim() : null
   const simpleCharName = firstCharName ? simplifyName(firstCharName) : null
   const simpleSceneName = sceneName ? simplifyName(sceneName) : null
 
@@ -256,8 +257,8 @@ function resolveRefImage(
 // Convert Chinese character names to pinyin
 function toPinyin(name: string): string {
   const map: Record<string, string> = {
-    '林晓': 'Lin Xiao', '陈默': 'Chen Mo', '树声': 'Shu Sheng',
-    '小禾': 'Xiao He', '无': 'character',
+    '鏋楁檽': 'Lin Xiao', '闄堥粯': 'Chen Mo', '鏍戝０': 'Shu Sheng',
+    '灏忕': 'Xiao He', '鏃?: 'character',
   }
   return map[name] || name
 }
@@ -265,10 +266,10 @@ function toPinyin(name: string): string {
 // Extract key action from content (remove camera technical descriptions)
 function extractAction(content: string): string {
   return content
-    .replace(/镜头从.*?开始[，,]/g, '')  // Remove "镜头从...开始"
-    .replace(/采用.*?[。，]/g, '')       // Remove "采用全景"
-    .replace(/音效.*$/g, '')             // Remove sound effects
-    .replace(/^\s*[，,、]\s*/, '')       // Remove leading punctuation
+    .replace(/闀滃ご浠?*?寮€濮媅锛?]/g, '')  // Remove "闀滃ご浠?..寮€濮?
+    .replace(/閲囩敤.*?[銆傦紝]/g, '')       // Remove "閲囩敤鍏ㄦ櫙"
+    .replace(/闊虫晥.*$/g, '')             // Remove sound effects
+    .replace(/^\s*[锛?銆乚\s*/, '')       // Remove leading punctuation
     .trim()
     .slice(0, 80)
 }
@@ -349,8 +350,8 @@ function parsePrompts(text: string): string[] {
 function isInvalidResponse(text: string): boolean {
   // Only detect obvious Chinese chat patterns
   const chatPatterns = [
-    /请问/, /已为您/, /很动人/, /温馨/, /需要继续/, /下一个/,
-    /好的/, /明白/, /收到/, /没问题/, /请问需要/,
+    /璇烽棶/, /宸蹭负鎮?, /寰堝姩浜?, /娓╅Θ/, /闇€瑕佺户缁?, /涓嬩竴涓?,
+    /濂界殑/, /鏄庣櫧/, /鏀跺埌/, /娌￠棶棰?, /璇烽棶闇€瑕?,
   ]
 
   // If it's English and long enough, it's valid
@@ -389,27 +390,27 @@ function buildFallback(frame: ParsedFrame): string[] {
 
 function validateOutput(rawText: string): { valid: boolean; reason?: string; data?: string[] } {
   const blacklist = [
-    '类型', '时长', '基调', '梗概', '人物设定', '场景分幕',
-    '第一幕', '第二幕', '第三幕', '第四幕', '冲突', '主题', '隐喻',
-    '象征着', '这一幕', '性格', '背景故事', '心理', '他是一个', '内心独白',
-    '📜', 'Scene', 'Act', 'Profile', 'Introduction', '角色', '外貌'
+    '绫诲瀷', '鏃堕暱', '鍩鸿皟', '姊楁', '浜虹墿璁惧畾', '鍦烘櫙鍒嗗箷',
+    '绗竴骞?, '绗簩骞?, '绗笁骞?, '绗洓骞?, '鍐茬獊', '涓婚', '闅愬柣',
+    '璞″緛鐫€', '杩欎竴骞?, '鎬ф牸', '鑳屾櫙鏁呬簨', '蹇冪悊', '浠栨槸涓€涓?, '鍐呭績鐙櫧',
+    '馃摐', 'Scene', 'Act', 'Profile', 'Introduction', '瑙掕壊', '澶栬矊'
   ]
 
   for (const word of blacklist) {
     if (rawText.includes(word)) {
-      return { valid: false, reason: `检测到禁用词"${word}"` }
+      return { valid: false, reason: `妫€娴嬪埌绂佺敤璇?${word}"` }
     }
   }
 
   const lines = rawText.split('\n').filter(l => l.trim())
 
   if (lines.length !== 3) {
-    return { valid: false, reason: `必须输出3行，实际${lines.length}行` }
+    return { valid: false, reason: `蹇呴』杈撳嚭3琛岋紝瀹為檯${lines.length}琛宍 }
   }
 
   for (let i = 0; i < 3; i++) {
     if (!lines[i].trim().startsWith(`Prompt ${i + 1}:`)) {
-      return { valid: false, reason: `第${i + 1}行必须以"Prompt ${i + 1}:"开头` }
+      return { valid: false, reason: `绗?{i + 1}琛屽繀椤讳互"Prompt ${i + 1}:"寮€澶碻 }
     }
   }
 
@@ -417,7 +418,7 @@ function validateOutput(rawText: string): { valid: boolean; reason?: string; dat
   const requiredTags = ['[shot:', '[subject:', '[details:', '[lighting:', '[mood:']
   for (const tag of requiredTags) {
     if (!rawText.includes(tag)) {
-      return { valid: false, reason: `缺少标签${tag}` }
+      return { valid: false, reason: `缂哄皯鏍囩${tag}` }
     }
   }
 
@@ -490,9 +491,9 @@ export interface ConvMessage {
   actions?: Array<{ id: string; label: string; description: string }>
 }
 
-const CUSTOM_OPTION: WizardOption = { id: '__custom__', label: 'AI助手', description: '让AI帮你推荐', icon: '🤖' }
-const FREE_INPUT_OPTION: WizardOption = { id: '__free_input__', label: '自由输入', description: '自己输入想法', icon: '✏️' }
-const CONFIRM_OPTION: WizardOption = { id: '__confirm__', label: '确认', description: '确认进入下一步' }
+const CUSTOM_OPTION: WizardOption = { id: '__custom__', label: 'AI鍔╂墜', description: '璁〢I甯綘鎺ㄨ崘', icon: '馃' }
+const FREE_INPUT_OPTION: WizardOption = { id: '__free_input__', label: '鑷敱杈撳叆', description: '鑷繁杈撳叆鎯虫硶', icon: '鉁忥笍' }
+const CONFIRM_OPTION: WizardOption = { id: '__confirm__', label: '纭', description: '纭杩涘叆涓嬩竴姝? }
 
 export function useConversation(options: UseConversationOptions = {}) {
   const { onConflict, initialPrompt } = options
@@ -575,8 +576,8 @@ export function useConversation(options: UseConversationOptions = {}) {
     const keys = loadApiKeys()
     return {
       key: keys.text || '',
-      base_url: keys.base_url || 'https://api.mimo.com/v1',
-      model: keys.model || 'mimo-v2.5',
+      base_url: keys.base_url || DEFAULTS.CHAT_BASE_URL,
+      model: keys.model || DEFAULTS.CHAT_MODEL,
     }
   }, [])
 
@@ -679,11 +680,11 @@ export function useConversation(options: UseConversationOptions = {}) {
     setAwaitingScriptDecision(true)
     addMessage({
       role: 'assistant',
-      content: '欢迎来到漫剧创作工作室！请问你有现成的剧本吗？',
+      content: '娆㈣繋鏉ュ埌婕墽鍒涗綔宸ヤ綔瀹わ紒璇烽棶浣犳湁鐜版垚鐨勫墽鏈悧锛?,
       status: 'done',
       options: [
-        { id: '__has_script__', label: '📄 我有剧本', description: '上传或粘贴已有剧本' },
-        { id: '__no_script__', label: '✍️ 我没有剧本', description: '通过向导引导创作' },
+        { id: '__has_script__', label: '馃搫 鎴戞湁鍓ф湰', description: '涓婁紶鎴栫矘璐村凡鏈夊墽鏈? },
+        { id: '__no_script__', label: '鉁嶏笍 鎴戞病鏈夊墽鏈?, description: '閫氳繃鍚戝寮曞鍒涗綔' },
       ],
     })
   }, [addMessage])
@@ -705,7 +706,7 @@ export function useConversation(options: UseConversationOptions = {}) {
           id: q.id,
           text: q.text,
           options: q.options.map((o, i) => ({
-            id: o.label === '自由输入' ? '__free_input__' : o.label === 'AI推荐' ? '__ai_recommend__' : `${q.id}_${i}`,
+            id: o.label === '鑷敱杈撳叆' ? '__free_input__' : o.label === 'AI鎺ㄨ崘' ? '__ai_recommend__' : `${q.id}_${i}`,
             label: o.label,
             description: o.description,
           })),
@@ -714,7 +715,7 @@ export function useConversation(options: UseConversationOptions = {}) {
           setQuestions(fetchedQuestions)
           setCurrentQuestionIndex(0)
           updateMessage(msgId, {
-            content: result.greeting || '好的，让我问你几个问题来明确创作方向。',
+            content: result.greeting || '濂界殑锛岃鎴戦棶浣犲嚑涓棶棰樻潵鏄庣‘鍒涗綔鏂瑰悜銆?,
             status: 'done',
           })
           const firstQ = fetchedQuestions[0]
@@ -724,14 +725,14 @@ export function useConversation(options: UseConversationOptions = {}) {
             status: 'done',
             options: firstQ.options,
             allowCustom: true,
-            customPlaceholder: '请输入你想要的...',
+            customPlaceholder: '璇疯緭鍏ヤ綘鎯宠鐨?..',
           })
         } else {
-          updateMessage(msgId, { content: '获取问题失败，请重试。', status: 'error', retryable: true })
+          updateMessage(msgId, { content: '鑾峰彇闂澶辫触锛岃閲嶈瘯銆?, status: 'error', retryable: true })
         }
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err)
-        updateMessage(msgId, { content: `获取问题失败：${errorMsg}`, status: 'error', retryable: true })
+        updateMessage(msgId, { content: `鑾峰彇闂澶辫触锛?{errorMsg}`, status: 'error', retryable: true })
       }
     },
     [addMessage, updateMessage, getApiConfig]
@@ -740,10 +741,10 @@ export function useConversation(options: UseConversationOptions = {}) {
   const confirmHasScript = useCallback(async (hasScript: boolean, scriptText?: string) => {
     if (!hasScript) {
       setAwaitingScriptDecision(false)
-      addMessage({ role: 'user', content: '我没有剧本', status: 'done' })
+      addMessage({ role: 'user', content: '鎴戞病鏈夊墽鏈?, status: 'done' })
       addMessage({
         role: 'assistant',
-        content: '好的，请告诉我你想创作的主题（例如：校园恋爱、悬疑推理、古风仙侠等）。',
+        content: '濂界殑锛岃鍛婅瘔鎴戜綘鎯冲垱浣滅殑涓婚锛堜緥濡傦細鏍″洯鎭嬬埍銆佹偓鐤戞帹鐞嗐€佸彜椋庝粰渚犵瓑锛夈€?,
         status: 'done',
       })
       setPhase('wizard')
@@ -766,7 +767,7 @@ export function useConversation(options: UseConversationOptions = {}) {
       }
       addMessage({
         role: 'assistant',
-        content: '剧本已接收，请查看下方预览。确认后点击"同意，开始制作"。',
+        content: '鍓ф湰宸叉帴鏀讹紝璇锋煡鐪嬩笅鏂归瑙堛€傜‘璁ゅ悗鐐瑰嚮"鍚屾剰锛屽紑濮嬪埗浣?銆?,
         status: 'done',
         scriptDraft: draft,
       })
@@ -777,11 +778,11 @@ export function useConversation(options: UseConversationOptions = {}) {
       return
     }
 
-    // hasScript but no content yet — awaitingScriptDecision stays true
-    addMessage({ role: 'user', content: '我有剧本', status: 'done' })
+    // hasScript but no content yet 鈥?awaitingScriptDecision stays true
+    addMessage({ role: 'user', content: '鎴戞湁鍓ф湰', status: 'done' })
     addMessage({
       role: 'assistant',
-      content: '请直接粘贴你的剧本内容，或点击输入框旁的「+」按钮上传 .txt 文件。',
+      content: '璇风洿鎺ョ矘璐翠綘鐨勫墽鏈唴瀹癸紝鎴栫偣鍑昏緭鍏ユ鏃佺殑銆?銆嶆寜閽笂浼?.txt 鏂囦欢銆?,
       status: 'done',
     })
   }, [addMessage, setScriptContent, setPhase, createNewProject, saveProject, projectId])
@@ -832,9 +833,9 @@ export function useConversation(options: UseConversationOptions = {}) {
 
         const restoredMessages = (state.messages || []).map((msg: any) => {
           if (msg.scriptDraft === undefined && msg.content && msg.role === 'assistant') {
-            const hasScriptContent = msg.content.includes('📜') ||
-                                    msg.content.includes('类型') ||
-                                    msg.content.includes('场景')
+            const hasScriptContent = msg.content.includes('馃摐') ||
+                                    msg.content.includes('绫诲瀷') ||
+                                    msg.content.includes('鍦烘櫙')
             if (hasScriptContent) {
               return { ...msg, scriptDraft: parseScriptDraft(msg.content) }
             }
@@ -872,20 +873,20 @@ export function useConversation(options: UseConversationOptions = {}) {
           choices: currentChoices,
         })
         const aiOptions = (result.options || []).filter(
-          (opt) => !opt.label.includes('其他') && !opt.label.includes('AI助手') && opt.id !== '__custom__' && opt.id !== '__free_input__'
+          (opt) => !opt.label.includes('鍏朵粬') && !opt.label.includes('AI鍔╂墜') && opt.id !== '__custom__' && opt.id !== '__free_input__'
         )
         const optionsWithExtra = [...aiOptions, FREE_INPUT_OPTION, CUSTOM_OPTION]
         updateMessage(msgId, {
-          content: result.content || `请选择${stepId}：`,
+          content: result.content || `璇烽€夋嫨${stepId}锛歚,
           status: 'done',
           options: optionsWithExtra,
           allowCustom: true,
-          customPlaceholder: '请输入你想要的...',
+          customPlaceholder: '璇疯緭鍏ヤ綘鎯宠鐨?..',
         })
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err)
         updateMessage(msgId, {
-          content: `获取选项失败：${errorMsg}`,
+          content: `鑾峰彇閫夐」澶辫触锛?{errorMsg}`,
           status: 'error',
           retryable: true,
         })
@@ -898,7 +899,7 @@ export function useConversation(options: UseConversationOptions = {}) {
     async (allChoices: Record<string, string | null>) => {
       setPhase('generating_script')
       setCurrentSubPhase('none')
-      const msgId = addMessage({ role: 'assistant', content: '正在为你生成剧本...', status: 'generating' })
+      const msgId = addMessage({ role: 'assistant', content: '姝ｅ湪涓轰綘鐢熸垚鍓ф湰...', status: 'generating' })
       const apiConfig = getApiConfig()
       lastActionRef.current = { action: 'generate_script', data: { session: allChoices } }
       try {
@@ -910,12 +911,12 @@ export function useConversation(options: UseConversationOptions = {}) {
         setScriptContent(result.content)
         setPhase('script_review')
         updateMessage(msgId, {
-          content: '剧本已生成，请查看：',
+          content: '鍓ф湰宸茬敓鎴愶紝璇锋煡鐪嬶細',
           status: 'done',
           scriptDraft: parseScriptDraft(result.content),
         })
         if (!projectId) {
-          const idea = allChoices.topic || allChoices.genre || '未命名项目'
+          const idea = allChoices.topic || allChoices.genre || '鏈懡鍚嶉」鐩?
           await createNewProject(idea)
         }
       } catch (err) {
@@ -923,7 +924,7 @@ export function useConversation(options: UseConversationOptions = {}) {
         setPhase('idle')
         setCurrentSubPhase('none')
         updateMessage(msgId, {
-          content: `剧本生成失败：${errorMsg}`,
+          content: `鍓ф湰鐢熸垚澶辫触锛?{errorMsg}`,
           status: 'error',
           retryable: true,
         })
@@ -948,7 +949,7 @@ export function useConversation(options: UseConversationOptions = {}) {
           status: 'done',
           options: nextQ.options,
           allowCustom: true,
-          customPlaceholder: '请输入你想要的...',
+          customPlaceholder: '璇疯緭鍏ヤ綘鎯宠鐨?..',
         })
       } else {
         await generateScript(newSession)
@@ -959,7 +960,7 @@ export function useConversation(options: UseConversationOptions = {}) {
 
   const aiRecommend = useCallback(
     async (fieldId: string) => {
-      const msgId = addMessage({ role: 'assistant', content: 'AI 正在为你推荐...', status: 'generating' })
+      const msgId = addMessage({ role: 'assistant', content: 'AI 姝ｅ湪涓轰綘鎺ㄨ崘...', status: 'generating' })
       try {
         const result = await chatApi({
           action: 'ai_recommend',
@@ -968,16 +969,16 @@ export function useConversation(options: UseConversationOptions = {}) {
           field_id: fieldId,
           session,
         })
-        const recommendLabel = result.label || 'AI推荐'
+        const recommendLabel = result.label || 'AI鎺ㄨ崘'
         const recommendDesc = result.description || ''
         updateMessage(msgId, {
-          content: `AI推荐：${recommendLabel} — ${recommendDesc}`,
+          content: `AI鎺ㄨ崘锛?{recommendLabel} 鈥?${recommendDesc}`,
           status: 'done',
         })
         await selectOption(fieldId, recommendLabel, recommendLabel)
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err)
-        updateMessage(msgId, { content: `AI推荐失败：${errorMsg}`, status: 'error' })
+        updateMessage(msgId, { content: `AI鎺ㄨ崘澶辫触锛?{errorMsg}`, status: 'error' })
       }
     },
     [session, addMessage, updateMessage, getApiConfig, selectOption]
@@ -988,11 +989,11 @@ export function useConversation(options: UseConversationOptions = {}) {
     isConfirmingScript.current = true
 
     try {
-      addMessage({ role: 'user', content: '同意，开始制作', status: 'done' })
+      addMessage({ role: 'user', content: '鍚屾剰锛屽紑濮嬪埗浣?, status: 'done' })
       setCurrentSubPhase('none')
 
       setPhase('generating_key_elements')
-      const msgId = addMessage({ role: 'assistant', content: '正在生成关键视觉元素...', status: 'generating' })
+      const msgId = addMessage({ role: 'assistant', content: '姝ｅ湪鐢熸垚鍏抽敭瑙嗚鍏冪礌...', status: 'generating' })
       lastActionRef.current = { action: 'generate_key_elements', data: {} }
 
       try {
@@ -1006,7 +1007,7 @@ export function useConversation(options: UseConversationOptions = {}) {
         setPhase('key_elements_review')
         setCurrentSubPhase('key_elements')
         updateMessage(msgId, {
-          content: `**关键视觉元素**\n\n${result.content}\n\n---\n请确认或输入修改意见（如"把主角改成红色头发"）`,
+          content: `**鍏抽敭瑙嗚鍏冪礌**\n\n${result.content}\n\n---\n璇风‘璁ゆ垨杈撳叆淇敼鎰忚锛堝"鎶婁富瑙掓敼鎴愮孩鑹插ご鍙?锛塦,
           status: 'done',
           keyElementsContent: result.content,
           options: [CONFIRM_OPTION],
@@ -1017,7 +1018,7 @@ export function useConversation(options: UseConversationOptions = {}) {
         setPhase('idle')
         setCurrentSubPhase('none')
         updateMessage(msgId, {
-          content: `关键元素生成失败：${errorMsg}`,
+          content: `鍏抽敭鍏冪礌鐢熸垚澶辫触锛?{errorMsg}`,
           status: 'error',
           retryable: true,
         })
@@ -1028,15 +1029,15 @@ export function useConversation(options: UseConversationOptions = {}) {
   }, [scriptContent, addMessage, updateMessage, getApiConfig, saveProject])
 
   const confirmKeyElements = useCallback(async () => {
-    addMessage({ role: 'user', content: '确认', status: 'done' })
+    addMessage({ role: 'user', content: '纭', status: 'done' })
 
     setPhase('generating_narration')
-    const msgId = addMessage({ role: 'assistant', content: '正在生成旁白和音乐提示...', status: 'generating' })
+    const msgId = addMessage({ role: 'assistant', content: '姝ｅ湪鐢熸垚鏃佺櫧鍜岄煶涔愭彁绀?..', status: 'generating' })
     lastActionRef.current = { action: 'generate_narration', data: {} }
 
     try {
       const apiConfig = getApiConfig()
-      const dialogueType = (session.dialogue as string) || '有对白'
+      const dialogueType = (session.dialogue as string) || '鏈夊鐧?
       const result = await chatApi({
         action: 'generate_narration',
         api_config: apiConfig,
@@ -1047,7 +1048,7 @@ export function useConversation(options: UseConversationOptions = {}) {
       setPhase('narration_review')
       setCurrentSubPhase('narration')
       updateMessage(msgId, {
-        content: `**旁白与音乐**\n\n${result.content}\n\n---\n请确认或输入修改意见`,
+        content: `**鏃佺櫧涓庨煶涔?*\n\n${result.content}\n\n---\n璇风‘璁ゆ垨杈撳叆淇敼鎰忚`,
         status: 'done',
         narrationContent: result.content,
         options: [CONFIRM_OPTION],
@@ -1058,7 +1059,7 @@ export function useConversation(options: UseConversationOptions = {}) {
         setPhase('key_elements_review')
         setCurrentSubPhase('key_elements')
         updateMessage(msgId, {
-          content: `旁白生成失败：${errorMsg}`,
+          content: `鏃佺櫧鐢熸垚澶辫触锛?{errorMsg}`,
         status: 'error',
         retryable: true,
       })
@@ -1067,7 +1068,7 @@ export function useConversation(options: UseConversationOptions = {}) {
 
   const _generateStoryboardDirect = useCallback(async () => {
     setPhase('generating_storyboard')
-    const msgId = addMessage({ role: 'assistant', content: '正在生成分镜设计...', status: 'generating' })
+    const msgId = addMessage({ role: 'assistant', content: '姝ｅ湪鐢熸垚鍒嗛暅璁捐...', status: 'generating' })
     const apiConfig = getApiConfig()
     const durationStr = (session.duration as string) || '1_2min'
     const targetDuration = DURATION_MAP[durationStr] || 0
@@ -1081,12 +1082,12 @@ export function useConversation(options: UseConversationOptions = {}) {
         target_duration: targetDuration,
         duration_str: durationStr,
       })
-      const sbContent = result.content || '# 分镜设计\n\n**总镜头数**：4 | **预计总时长**：' + targetDuration + '秒'
+      const sbContent = result.content || '# 鍒嗛暅璁捐\n\n**鎬婚暅澶存暟**锛? | **棰勮鎬绘椂闀?*锛? + targetDuration + '绉?
       setStoryboardContent(sbContent)
       setPhase('storyboard_review')
       setCurrentSubPhase('storyboard')
       updateMessage(msgId, {
-        content: `**分镜设计**\n\n${sbContent}\n\n---\n请确认或输入修改意见`,
+        content: `**鍒嗛暅璁捐**\n\n${sbContent}\n\n---\n璇风‘璁ゆ垨杈撳叆淇敼鎰忚`,
         status: 'done',
         storyboardContent: sbContent,
         options: [CONFIRM_OPTION],
@@ -1096,7 +1097,7 @@ export function useConversation(options: UseConversationOptions = {}) {
       setPhase('dialogue_review')
       setCurrentSubPhase('dialogue')
       updateMessage(msgId, {
-        content: `分镜生成失败：${errorMsg}`,
+        content: `鍒嗛暅鐢熸垚澶辫触锛?{errorMsg}`,
         status: 'error',
         retryable: true,
       })
@@ -1104,12 +1105,12 @@ export function useConversation(options: UseConversationOptions = {}) {
   }, [scriptContent, session, addMessage, updateMessage, getApiConfig])
 
   const confirmNarration = useCallback(async () => {
-    addMessage({ role: 'user', content: '确认', status: 'done' })
+    addMessage({ role: 'user', content: '纭', status: 'done' })
 
-    const dialogueType = (session.dialogue as string) || '有对白'
-    if (dialogueType === '有对白' || dialogueType === '人物之间的对白') {
+    const dialogueType = (session.dialogue as string) || '鏈夊鐧?
+    if (dialogueType === '鏈夊鐧? || dialogueType === '浜虹墿涔嬮棿鐨勫鐧?) {
       setPhase('generating_dialogue')
-      const msgId = addMessage({ role: 'assistant', content: '正在生成角色对话...', status: 'generating' })
+      const msgId = addMessage({ role: 'assistant', content: '姝ｅ湪鐢熸垚瑙掕壊瀵硅瘽...', status: 'generating' })
       lastActionRef.current = { action: 'generate_dialogue', data: {} }
 
       try {
@@ -1123,7 +1124,7 @@ export function useConversation(options: UseConversationOptions = {}) {
         setPhase('dialogue_review')
         setCurrentSubPhase('dialogue')
         updateMessage(msgId, {
-          content: `**角色对话**\n\n${result.content}\n\n---\n请确认或输入修改意见`,
+          content: `**瑙掕壊瀵硅瘽**\n\n${result.content}\n\n---\n璇风‘璁ゆ垨杈撳叆淇敼鎰忚`,
           status: 'done',
           dialogueContent: result.content,
           options: [CONFIRM_OPTION],
@@ -1134,7 +1135,7 @@ export function useConversation(options: UseConversationOptions = {}) {
         setPhase('narration_review')
         setCurrentSubPhase('narration')
         updateMessage(msgId, {
-          content: `对话生成失败：${errorMsg}`,
+          content: `瀵硅瘽鐢熸垚澶辫触锛?{errorMsg}`,
           status: 'error',
           retryable: true,
         })
@@ -1145,14 +1146,14 @@ export function useConversation(options: UseConversationOptions = {}) {
   }, [scriptContent, session, addMessage, updateMessage, getApiConfig, _generateStoryboardDirect, saveProject])
 
   const confirmDialogue = useCallback(async () => {
-    addMessage({ role: 'user', content: '确认', status: 'done' })
+    addMessage({ role: 'user', content: '纭', status: 'done' })
     await _generateStoryboardDirect()
     await saveProject()
   }, [addMessage, _generateStoryboardDirect, saveProject])
 
   const modifyKeyElements = useCallback(async (modificationRequest: string) => {
     addMessage({ role: 'user', content: modificationRequest, status: 'done' })
-    const msgId = addMessage({ role: 'assistant', content: '正在修改关键元素...', status: 'generating' })
+    const msgId = addMessage({ role: 'assistant', content: '姝ｅ湪淇敼鍏抽敭鍏冪礌...', status: 'generating' })
     lastActionRef.current = { action: 'modify_key_elements', data: { original_content: keyElementsContent, modification_request: modificationRequest } }
 
     try {
@@ -1166,7 +1167,7 @@ export function useConversation(options: UseConversationOptions = {}) {
       setKeyElementsContent(result.content)
       setPhase('key_elements_review')
       updateMessage(msgId, {
-        content: `**关键视觉元素（已修改）**\n\n${result.content}\n\n---\n请确认或继续修改`,
+        content: `**鍏抽敭瑙嗚鍏冪礌锛堝凡淇敼锛?*\n\n${result.content}\n\n---\n璇风‘璁ゆ垨缁х画淇敼`,
         status: 'done',
         keyElementsContent: result.content,
         options: [CONFIRM_OPTION],
@@ -1174,13 +1175,13 @@ export function useConversation(options: UseConversationOptions = {}) {
       await saveProject()
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
-      updateMessage(msgId, { content: `修改失败：${errorMsg}`, status: 'error', retryable: true })
+      updateMessage(msgId, { content: `淇敼澶辫触锛?{errorMsg}`, status: 'error', retryable: true })
     }
   }, [keyElementsContent, addMessage, updateMessage, getApiConfig, saveProject])
 
   const modifyNarration = useCallback(async (modificationRequest: string) => {
     addMessage({ role: 'user', content: modificationRequest, status: 'done' })
-    const msgId = addMessage({ role: 'assistant', content: '正在修改旁白...', status: 'generating' })
+    const msgId = addMessage({ role: 'assistant', content: '姝ｅ湪淇敼鏃佺櫧...', status: 'generating' })
     lastActionRef.current = { action: 'modify_narration', data: { original_content: narrationContent, modification_request: modificationRequest } }
 
     try {
@@ -1194,7 +1195,7 @@ export function useConversation(options: UseConversationOptions = {}) {
       setNarrationContent(result.content)
       setPhase('narration_review')
       updateMessage(msgId, {
-        content: `**旁白与音乐（已修改）**\n\n${result.content}\n\n---\n请确认或继续修改`,
+        content: `**鏃佺櫧涓庨煶涔愶紙宸蹭慨鏀癸級**\n\n${result.content}\n\n---\n璇风‘璁ゆ垨缁х画淇敼`,
         status: 'done',
         narrationContent: result.content,
         options: [CONFIRM_OPTION],
@@ -1202,13 +1203,13 @@ export function useConversation(options: UseConversationOptions = {}) {
       await saveProject()
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
-      updateMessage(msgId, { content: `修改失败：${errorMsg}`, status: 'error', retryable: true })
+      updateMessage(msgId, { content: `淇敼澶辫触锛?{errorMsg}`, status: 'error', retryable: true })
     }
   }, [narrationContent, addMessage, updateMessage, getApiConfig, saveProject])
 
   const modifyDialogue = useCallback(async (modificationRequest: string) => {
     addMessage({ role: 'user', content: modificationRequest, status: 'done' })
-    const msgId = addMessage({ role: 'assistant', content: '正在修改对话...', status: 'generating' })
+    const msgId = addMessage({ role: 'assistant', content: '姝ｅ湪淇敼瀵硅瘽...', status: 'generating' })
     lastActionRef.current = { action: 'modify_dialogue', data: { original_content: dialogueContent, modification_request: modificationRequest } }
 
     try {
@@ -1222,7 +1223,7 @@ export function useConversation(options: UseConversationOptions = {}) {
       setDialogueContent(result.content)
       setPhase('dialogue_review')
       updateMessage(msgId, {
-        content: `**角色对话（已修改）**\n\n${result.content}\n\n---\n请确认或继续修改`,
+        content: `**瑙掕壊瀵硅瘽锛堝凡淇敼锛?*\n\n${result.content}\n\n---\n璇风‘璁ゆ垨缁х画淇敼`,
         status: 'done',
         dialogueContent: result.content,
         options: [CONFIRM_OPTION],
@@ -1230,13 +1231,13 @@ export function useConversation(options: UseConversationOptions = {}) {
       await saveProject()
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
-      updateMessage(msgId, { content: `修改失败：${errorMsg}`, status: 'error', retryable: true })
+      updateMessage(msgId, { content: `淇敼澶辫触锛?{errorMsg}`, status: 'error', retryable: true })
     }
   }, [dialogueContent, addMessage, updateMessage, getApiConfig, saveProject])
 
   const modifyStoryboard = useCallback(async (modificationRequest: string) => {
     addMessage({ role: 'user', content: modificationRequest, status: 'done' })
-    const msgId = addMessage({ role: 'assistant', content: '正在修改分镜...', status: 'generating' })
+    const msgId = addMessage({ role: 'assistant', content: '姝ｅ湪淇敼鍒嗛暅...', status: 'generating' })
     lastActionRef.current = { action: 'modify_storyboard', data: { original_content: storyboardContent, modification_request: modificationRequest } }
 
     try {
@@ -1250,7 +1251,7 @@ export function useConversation(options: UseConversationOptions = {}) {
       setStoryboardContent(result.content)
       setPhase('storyboard_review')
       updateMessage(msgId, {
-        content: `**分镜设计（已修改）**\n\n${result.content}\n\n---\n请确认或继续修改`,
+        content: `**鍒嗛暅璁捐锛堝凡淇敼锛?*\n\n${result.content}\n\n---\n璇风‘璁ゆ垨缁х画淇敼`,
         status: 'done',
         storyboardContent: result.content,
         options: [CONFIRM_OPTION],
@@ -1258,7 +1259,7 @@ export function useConversation(options: UseConversationOptions = {}) {
       await saveProject()
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
-      updateMessage(msgId, { content: `修改失败：${errorMsg}`, status: 'error', retryable: true })
+      updateMessage(msgId, { content: `淇敼澶辫触锛?{errorMsg}`, status: 'error', retryable: true })
     }
   }, [storyboardContent, addMessage, updateMessage, getApiConfig, saveProject])
 
@@ -1283,8 +1284,8 @@ export function useConversation(options: UseConversationOptions = {}) {
   const selectModSubOption = useCallback(
     async (categoryId: string, subOption: string) => {
       setPhase('regenerating_script')
-      addMessage({ role: 'user', content: `修改${categoryId}：${subOption}`, status: 'done' })
-      const msgId = addMessage({ role: 'assistant', content: `正在根据「${subOption}」修改剧本...`, status: 'generating' })
+      addMessage({ role: 'user', content: `淇敼${categoryId}锛?{subOption}`, status: 'done' })
+      const msgId = addMessage({ role: 'assistant', content: `姝ｅ湪鏍规嵁銆?{subOption}銆嶄慨鏀瑰墽鏈?..`, status: 'generating' })
       const apiConfig = getApiConfig()
       lastActionRef.current = { action: 'modify_script', data: { category: categoryId, sub_option: subOption } }
 
@@ -1299,7 +1300,7 @@ export function useConversation(options: UseConversationOptions = {}) {
         setScriptContent(result.content)
         setPhase('script_review')
         updateMessage(msgId, {
-          content: '剧本已修改，请查看：',
+          content: '鍓ф湰宸蹭慨鏀癸紝璇锋煡鐪嬶細',
           status: 'done',
           scriptDraft: parseScriptDraft(result.content),
         })
@@ -1307,7 +1308,7 @@ export function useConversation(options: UseConversationOptions = {}) {
         const errorMsg = err instanceof Error ? err.message : String(err)
         setPhase('script_review')
         updateMessage(msgId, {
-          content: `修改失败：${errorMsg}`,
+          content: `淇敼澶辫触锛?{errorMsg}`,
           status: 'error',
           retryable: true,
         })
@@ -1319,7 +1320,7 @@ export function useConversation(options: UseConversationOptions = {}) {
   const modifyScript = useCallback(async (modificationRequest: string) => {
     addMessage({ role: 'user', content: modificationRequest, status: 'done' })
     setPhase('regenerating_script')
-    const msgId = addMessage({ role: 'assistant', content: '正在修改剧本...', status: 'generating' })
+    const msgId = addMessage({ role: 'assistant', content: '姝ｅ湪淇敼鍓ф湰...', status: 'generating' })
     lastActionRef.current = { action: 'modify_script_free', data: { original_script: scriptContent, modification_request: modificationRequest } }
 
     try {
@@ -1333,7 +1334,7 @@ export function useConversation(options: UseConversationOptions = {}) {
       setScriptContent(result.content)
       setPhase('script_review')
       updateMessage(msgId, {
-        content: '剧本已修改，请查看：',
+        content: '鍓ф湰宸蹭慨鏀癸紝璇锋煡鐪嬶細',
         status: 'done',
         scriptDraft: parseScriptDraft(result.content),
       })
@@ -1341,7 +1342,7 @@ export function useConversation(options: UseConversationOptions = {}) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       setPhase('script_review')
       updateMessage(msgId, {
-        content: `修改失败：${errorMsg}`,
+        content: `淇敼澶辫触锛?{errorMsg}`,
         status: 'error',
         retryable: true,
       })
@@ -1349,7 +1350,7 @@ export function useConversation(options: UseConversationOptions = {}) {
   }, [scriptContent, addMessage, updateMessage, getApiConfig])
 
   const generateKeyFrames = useCallback(async () => {
-    console.log('🔥🔥🔥 GENERATE KEYFRAMES STARTED 🔥🔥🔥')
+    console.log('馃敟馃敟馃敟 GENERATE KEYFRAMES STARTED 馃敟馃敟馃敟')
     console.log('[DEBUG] storyboardContent exists?', !!storyboardContent)
     console.log('[DEBUG] storyboardContent length:', storyboardContent?.length || 0)
 
@@ -1370,7 +1371,7 @@ export function useConversation(options: UseConversationOptions = {}) {
       console.log('[DEBUG] No frames found')
       addMessage({
         role: 'assistant',
-        content: '⚠️ 未能从分镜中提取镜头信息，请检查分镜格式。',
+        content: '鈿狅笍 鏈兘浠庡垎闀滀腑鎻愬彇闀滃ご淇℃伅锛岃妫€鏌ュ垎闀滄牸寮忋€?,
         status: 'done',
       })
       setGeneratingKeyFrames(false)
@@ -1379,7 +1380,7 @@ export function useConversation(options: UseConversationOptions = {}) {
 
     const progressMsgId = addMessage({
       role: 'assistant',
-      content: `正在为 ${frames.length} 个镜头生成起始帧图片...`,
+      content: `姝ｅ湪涓?${frames.length} 涓暅澶寸敓鎴愯捣濮嬪抚鍥剧墖...`,
       status: 'generating',
     })
 
@@ -1410,7 +1411,7 @@ Now generate 3 prompts for this shot:`
       console.log(`\n=== Frame ${i + 1}/${frames.length}: ${frame.title} ===`)
 
       updateMessage(progressMsgId, {
-        content: `正在处理镜头 ${i + 1}/${frames.length}：「${frame.title}」`,
+        content: `姝ｅ湪澶勭悊闀滃ご ${i + 1}/${frames.length}锛氥€?{frame.title}銆峘,
       })
 
       // Get reference image (character priority)
@@ -1435,9 +1436,9 @@ Now generate 3 prompts for this shot:`
       const coreAction = extractAction(frame.content || frame.title)
       const userPrompt = `Generate 3 prompts for this shot.
 
-【Core Action】${coreAction}
-【Character】${charPinyin}
-【Scene】${frame.sceneName || 'unspecified'}
+銆怌ore Action銆?{coreAction}
+銆怌haracter銆?{charPinyin}
+銆怱cene銆?{frame.sceneName || 'unspecified'}
 
 Rules:
 - MUST translate the Chinese action description into English
@@ -1488,7 +1489,7 @@ Remember: ONLY output the 3 prompts. No other text.`
       // Show complete prompts in chat (no truncation)
       addMessage({
         role: 'assistant',
-        content: `镜头 ${i + 1}「${frame.title}」\n\n${keywords.map((k, idx) => `画面${idx + 1}：${k}`).join('\n\n')}`,
+        content: `闀滃ご ${i + 1}銆?{frame.title}銆峔n\n${keywords.map((k, idx) => `鐢婚潰${idx + 1}锛?{k}`).join('\n\n')}`,
         status: 'done',
       })
 
@@ -1501,8 +1502,8 @@ Remember: ONLY output the 3 prompts. No other text.`
           const data = await generateImage({
             prompt: keywords[idx],
             api_key: keys.image_api_key,
-            model: keys.image_model || 'agnes-image-2.0-flash',
-            base_url: keys.image_base_url || 'https://apihub.agnes-ai.com/v1',
+            model: keys.image_model || DEFAULTS.IMAGE_MODEL,
+            base_url: keys.image_base_url || DEFAULTS.IMAGE_BASE_URL,
             size: '1792x1024',
             ref_image_url: refImageUrl,
           })
@@ -1521,8 +1522,8 @@ Remember: ONLY output the 3 prompts. No other text.`
               const data = await generateImage({
                 prompt: keywords[idx],
                 api_key: keys.image_api_key,
-                model: keys.image_model || 'agnes-image-2.0-flash',
-                base_url: keys.image_base_url || 'https://apihub.agnes-ai.com/v1',
+                model: keys.image_model || DEFAULTS.IMAGE_MODEL,
+                base_url: keys.image_base_url || DEFAULTS.IMAGE_BASE_URL,
                 size: '1792x1024',
               })
               shotImages.push(data.image_url)
@@ -1541,7 +1542,7 @@ Remember: ONLY output the 3 prompts. No other text.`
     }
 
     updateMessage(progressMsgId, {
-      content: `✅ 已为 ${frames.length} 个镜头生成起始帧图片`,
+      content: `鉁?宸蹭负 ${frames.length} 涓暅澶寸敓鎴愯捣濮嬪抚鍥剧墖`,
       status: 'done',
     })
     
@@ -1561,7 +1562,7 @@ Remember: ONLY output the 3 prompts. No other text.`
   const confirmImageGeneration = useCallback(async () => {
     setPhase('confirming_image')
     setCurrentSubPhase('none')
-    addMessage({ role: 'user', content: '生成起始帧图片', status: 'done' })
+    addMessage({ role: 'user', content: '鐢熸垚璧峰甯у浘鐗?, status: 'done' })
     await generateKeyFrames()
   }, [generateKeyFrames, addMessage])
 
@@ -1569,8 +1570,8 @@ Remember: ONLY output the 3 prompts. No other text.`
     setOptimizedPrompts(finalPrompts)
     setPhase('done')
     setEditOptimizedPrompts(false)
-    addMessage({ role: 'user', content: '确认使用提示词', status: 'done' })
-    addMessage({ role: 'assistant', content: '提示词已确认！后续将使用这些提示词生成图片。', status: 'done' })
+    addMessage({ role: 'user', content: '纭浣跨敤鎻愮ず璇?, status: 'done' })
+    addMessage({ role: 'assistant', content: '鎻愮ず璇嶅凡纭锛佸悗缁皢浣跨敤杩欎簺鎻愮ず璇嶇敓鎴愬浘鐗囥€?, status: 'done' })
     saveProject()
   }, [addMessage, saveProject])
 
@@ -1585,27 +1586,27 @@ Remember: ONLY output the 3 prompts. No other text.`
 
   const filterSceneDescription = useCallback((raw: string): string => {
     const personPatterns = [
-      /^[\-\*]\s*\*{0,2}人物\*{0,2}[：:]/im,
-      /^[\-\*]\s*\*{0,2}角色\*{0,2}[：:]/im,
-      /人物[：:]/,
-      /角色[：:]/,
-      /人物动作/,
-      /人物表情/,
-      /动作习惯/,
-      /表情描写/,
-      /动作描写/,
-      /对白/,
-      /台词/,
-      /主角/,
-      /配角/,
-      /\b他\b/,
-      /\b她\b/,
-      /\b他们\b/,
-      /\b她们\b/,
-      /角色动作/,
-      /角色表情/,
-      /人物形象/,
-      /角色形象/,
+      /^[\-\*]\s*\*{0,2}浜虹墿\*{0,2}[锛?]/im,
+      /^[\-\*]\s*\*{0,2}瑙掕壊\*{0,2}[锛?]/im,
+      /浜虹墿[锛?]/,
+      /瑙掕壊[锛?]/,
+      /浜虹墿鍔ㄤ綔/,
+      /浜虹墿琛ㄦ儏/,
+      /鍔ㄤ綔涔犳儻/,
+      /琛ㄦ儏鎻忓啓/,
+      /鍔ㄤ綔鎻忓啓/,
+      /瀵圭櫧/,
+      /鍙拌瘝/,
+      /涓昏/,
+      /閰嶈/,
+      /\b浠朶b/,
+      /\b濂筡b/,
+      /\b浠栦滑\b/,
+      /\b濂逛滑\b/,
+      /瑙掕壊鍔ㄤ綔/,
+      /瑙掕壊琛ㄦ儏/,
+      /浜虹墿褰㈣薄/,
+      /瑙掕壊褰㈣薄/,
     ]
 
     return raw
@@ -1616,7 +1617,7 @@ Remember: ONLY output the 3 prompts. No other text.`
       .trim()
   }, [])
 
-  /** 解析 keyElementsContent 为角色和场景的完整描述（不截断） */
+  /** 瑙ｆ瀽 keyElementsContent 涓鸿鑹插拰鍦烘櫙鐨勫畬鏁存弿杩帮紙涓嶆埅鏂級 */
   const parseKeyElementsContent = useCallback((content: string) => {
     const characters: Array<{ name: string; role: string; fullText: string; cleanText: string }> = []
     const scenes: Array<{ name: string; type: string; fullText: string; cleanText: string }> = []
@@ -1629,10 +1630,10 @@ Remember: ONLY output the 3 prompts. No other text.`
       if (!headingMatch) continue
       const heading = headingMatch[1]
 
-      if (heading.includes('角色形象')) {
+      if (heading.includes('瑙掕壊褰㈣薄')) {
         const subSections = section.split(/(?=^### )/m)
         for (const sub of subSections) {
-          const subMatch = sub.match(/^### (主角|配角)[：:](.+)$/m)
+          const subMatch = sub.match(/^### (涓昏|閰嶈)[锛?](.+)$/m)
           if (!subMatch) continue
           const role = subMatch[1]
           const name = subMatch[2].trim()
@@ -1640,14 +1641,14 @@ Remember: ONLY output the 3 prompts. No other text.`
           const cleanText = fullText
             .replace(/\*\*([^*]+)\*\*/g, '$1')
             .replace(/^[\-\*]\s+/gm, '')
-            .replace(/\n+/g, '，')
+            .replace(/\n+/g, '锛?)
             .trim()
           characters.push({ name, role, fullText, cleanText })
         }
-      } else if (heading.includes('场景')) {
+      } else if (heading.includes('鍦烘櫙')) {
         const subSections = section.split(/(?=^### )/m)
         for (const sub of subSections) {
-          const subMatch = sub.match(/^### (主要场景|次要场景)[一二三四五六七八九十\d]*[：:]\s*(.+)$/m)
+          const subMatch = sub.match(/^### (涓昏鍦烘櫙|娆¤鍦烘櫙)[涓€浜屼笁鍥涗簲鍏竷鍏節鍗乗d]*[锛?]\s*(.+)$/m)
           if (!subMatch) continue
           const type = subMatch[1]
           const name = subMatch[2].trim()
@@ -1655,7 +1656,7 @@ Remember: ONLY output the 3 prompts. No other text.`
           const cleanText = filterSceneDescription(fullText)
             .replace(/\*\*([^*]+)\*\*/g, '$1')
             .replace(/^[\-\*]\s+/gm, '')
-            .replace(/\n+/g, '，')
+            .replace(/\n+/g, '锛?)
             .trim()
           scenes.push({ name, type, fullText, cleanText })
         }
@@ -1669,10 +1670,10 @@ Remember: ONLY output the 3 prompts. No other text.`
     const { characters, scenes } = parseKeyElementsContent(keyElementsContent)
     const keys: string[] = []
     for (const c of characters) {
-      if (c.role === '主角') keys.push(`char_${c.name}`)
+      if (c.role === '涓昏') keys.push(`char_${c.name}`)
     }
     for (const s of scenes) {
-      if (s.type === '主要场景') keys.push(`scene_${s.name}`)
+      if (s.type === '涓昏鍦烘櫙') keys.push(`scene_${s.name}`)
     }
     return keys
   }, [keyElementsContent, parseKeyElementsContent])
@@ -1698,14 +1699,14 @@ Remember: ONLY output the 3 prompts. No other text.`
   }, [getMissingReferences, keyElementsImages])
 
   const confirmStoryboard = useCallback(() => {
-    addMessage({ role: 'user', content: '确认', status: 'done' })
+    addMessage({ role: 'user', content: '纭', status: 'done' })
     setCurrentSubPhase('image_confirm')
     addMessage({
       role: 'assistant',
-      content: '所有文本已准备就绪！\n\n请先选择画风（点击底部 Skill 按钮），然后点击下方按钮开始生成角色/场景图片：',
+      content: '鎵€鏈夋枃鏈凡鍑嗗灏辩华锛乗n\n璇峰厛閫夋嫨鐢婚锛堢偣鍑诲簳閮?Skill 鎸夐挳锛夛紝鐒跺悗鐐瑰嚮涓嬫柟鎸夐挳寮€濮嬬敓鎴愯鑹?鍦烘櫙鍥剧墖锛?,
       status: 'done',
       options: [
-        { id: '__confirm__', label: '🎨 开始生成角色/场景图片', description: '生成关键视觉元素的概念图' },
+        { id: '__confirm__', label: '馃帹 寮€濮嬬敓鎴愯鑹?鍦烘櫙鍥剧墖', description: '鐢熸垚鍏抽敭瑙嗚鍏冪礌鐨勬蹇靛浘' },
       ],
     })
     saveProject()
@@ -1715,15 +1716,15 @@ Remember: ONLY output the 3 prompts. No other text.`
     if (!keyElementsContent) return
 
     setGeneratingKeyElementsImages(true)
-    setKeyElementsImageProgress('正在解析关键元素...')
+    setKeyElementsImageProgress('姝ｅ湪瑙ｆ瀽鍏抽敭鍏冪礌...')
 
     const keys = loadApiKeys()
     const apiKey = keys.image_api_key
-    const model = keys.image_model || 'agnes-image-2.0-flash'
-    const baseUrl = keys.image_base_url || 'https://apihub.agnes-ai.com/v1'
+    const model = keys.image_model || DEFAULTS.IMAGE_MODEL
+    const baseUrl = keys.image_base_url || DEFAULTS.IMAGE_BASE_URL
 
     if (!apiKey) {
-      alert('请先在设置中配置图像 API Key')
+      alert('璇峰厛鍦ㄨ缃腑閰嶇疆鍥惧儚 API Key')
       setGeneratingKeyElementsImages(false)
       return
     }
@@ -1732,7 +1733,7 @@ Remember: ONLY output the 3 prompts. No other text.`
     if (!style) {
       addMessage({
         role: 'assistant',
-        content: '请先在下方 Skill 列表中选择一种画风，然后重新点击生成按钮。',
+        content: '璇峰厛鍦ㄤ笅鏂?Skill 鍒楄〃涓€夋嫨涓€绉嶇敾椋庯紝鐒跺悗閲嶆柊鐐瑰嚮鐢熸垚鎸夐挳銆?,
         status: 'done',
       })
       setGeneratingKeyElementsImages(false)
@@ -1746,13 +1747,13 @@ Remember: ONLY output the 3 prompts. No other text.`
 
     const totalItems = characters.length + scenes.length
     if (totalItems === 0) {
-      alert('未找到可生成图片的角色或场景')
+      alert('鏈壘鍒板彲鐢熸垚鍥剧墖鐨勮鑹叉垨鍦烘櫙')
       setGeneratingKeyElementsImages(false)
       return
     }
 
     const progressMsgId = addMessage({
-      role: 'assistant', content: `正在生成视觉元素图片 0/${totalItems}...`, status: 'generating'
+      role: 'assistant', content: `姝ｅ湪鐢熸垚瑙嗚鍏冪礌鍥剧墖 0/${totalItems}...`, status: 'generating'
     })
 
     let completed = 0
@@ -1760,10 +1761,10 @@ Remember: ONLY output the 3 prompts. No other text.`
     for (const char of characters) {
       const charKey = `char_${char.name}`
       setKeyElementsProgress(prev => ({ ...prev, [charKey]: 0 }))
-      setKeyElementsImageProgress(`正在生成角色图 ${completed + 1}/${totalItems}: ${char.name}`)
-      updateMessage(progressMsgId, { content: `正在生成角色图 ${completed + 1}/${totalItems}: ${char.name}` })
+      setKeyElementsImageProgress(`姝ｅ湪鐢熸垚瑙掕壊鍥?${completed + 1}/${totalItems}: ${char.name}`)
+      updateMessage(progressMsgId, { content: `姝ｅ湪鐢熸垚瑙掕壊鍥?${completed + 1}/${totalItems}: ${char.name}` })
       try {
-        const prompt = `${stylePrefix}角色正面全身照：${char.name}，${char.cleanText}。画面要求：纯白色背景，电影感柔和光影，超写实质感。人物正面站立，双手自然下垂，面部正对镜头，全身完整入镜，无透视畸变。8K，超高质量。`
+        const prompt = `${stylePrefix}瑙掕壊姝ｉ潰鍏ㄨ韩鐓э細${char.name}锛?{char.cleanText}銆傜敾闈㈣姹傦細绾櫧鑹茶儗鏅紝鐢靛奖鎰熸煍鍜屽厜褰憋紝瓒呭啓瀹炶川鎰熴€備汉鐗╂闈㈢珯绔嬶紝鍙屾墜鑷劧涓嬪瀭锛岄潰閮ㄦ瀵归暅澶达紝鍏ㄨ韩瀹屾暣鍏ラ暅锛屾棤閫忚鐣稿彉銆?K锛岃秴楂樿川閲忋€俙
         const existingImage = keyElementsImages[charKey]?.[0]
         const data = await generateImage({ prompt, api_key: apiKey, model, base_url: baseUrl, ref_image_url: existingImage })
         setKeyElementsImages(prev => ({
@@ -1784,25 +1785,25 @@ Remember: ONLY output the 3 prompts. No other text.`
         if (missing.length > 0) {
           setAwaitingReferenceSelection(true)
           const missingList = missing.map(k => {
-            const prefix = k.startsWith('char_') ? '角色' : '场景'
+            const prefix = k.startsWith('char_') ? '瑙掕壊' : '鍦烘櫙'
             const name = k.replace(/^char_|^scene_/, '')
-            return `• ${prefix}：${name}`
+            return `鈥?${prefix}锛?{name}`
           }).join('\n')
           updateMessage(progressMsgId, {
-            content: `✅ 已生成 ${totalItems} 张图片。\n\n以下角色/场景尚未选择主参考图：\n${missingList}\n\n请点击左侧卡片中的图片，双击选择"作为主图"。满意后点击下方按钮：`,
+            content: `鉁?宸茬敓鎴?${totalItems} 寮犲浘鐗囥€俓n\n浠ヤ笅瑙掕壊/鍦烘櫙灏氭湭閫夋嫨涓诲弬鑰冨浘锛歕n${missingList}\n\n璇风偣鍑诲乏渚у崱鐗囦腑鐨勫浘鐗囷紝鍙屽嚮閫夋嫨"浣滀负涓诲浘"銆傛弧鎰忓悗鐐瑰嚮涓嬫柟鎸夐挳锛歚,
             status: 'done',
             options: [
-              { id: '__satisfied__', label: '✅ 满意，继续下一步', description: '检查主图后生成分镜图片' },
-              { id: '__regenerate__', label: '🔄 重新生成全部', description: '追加生成更多图片' },
+              { id: '__satisfied__', label: '鉁?婊℃剰锛岀户缁笅涓€姝?, description: '妫€鏌ヤ富鍥惧悗鐢熸垚鍒嗛暅鍥剧墖' },
+              { id: '__regenerate__', label: '馃攧 閲嶆柊鐢熸垚鍏ㄩ儴', description: '杩藉姞鐢熸垚鏇村鍥剧墖' },
             ],
           })
         } else {
           updateMessage(progressMsgId, {
-            content: `✅ 已生成 ${totalItems} 张图片。所有主参考图已选择！`,
+            content: `鉁?宸茬敓鎴?${totalItems} 寮犲浘鐗囥€傛墍鏈変富鍙傝€冨浘宸查€夋嫨锛乣,
             status: 'done',
             options: [
-              { id: '__confirm__', label: '✅ 生成分镜图片', description: '进入分镜图片生成' },
-              { id: '__regenerate__', label: '🔄 重新生成全部', description: '追加生成更多图片' },
+              { id: '__confirm__', label: '鉁?鐢熸垚鍒嗛暅鍥剧墖', description: '杩涘叆鍒嗛暅鍥剧墖鐢熸垚' },
+              { id: '__regenerate__', label: '馃攧 閲嶆柊鐢熸垚鍏ㄩ儴', description: '杩藉姞鐢熸垚鏇村鍥剧墖' },
             ],
           })
         }
@@ -1812,10 +1813,10 @@ Remember: ONLY output the 3 prompts. No other text.`
     for (const scene of scenes) {
       const sceneKey = `scene_${scene.name}`
       setKeyElementsProgress(prev => ({ ...prev, [sceneKey]: 0 }))
-      setKeyElementsImageProgress(`正在生成场景图 ${completed + 1}/${totalItems}: ${scene.name}`)
-      updateMessage(progressMsgId, { content: `正在生成场景图 ${completed + 1}/${totalItems}: ${scene.name}` })
+      setKeyElementsImageProgress(`姝ｅ湪鐢熸垚鍦烘櫙鍥?${completed + 1}/${totalItems}: ${scene.name}`)
+      updateMessage(progressMsgId, { content: `姝ｅ湪鐢熸垚鍦烘櫙鍥?${completed + 1}/${totalItems}: ${scene.name}` })
       try {
-        const prompt = `${stylePrefix}环境场景图，不要包含任何人物：${scene.name}，${scene.cleanText}，detailed environment, atmospheric lighting, high quality, no people, no characters, empty scene, environment only`
+        const prompt = `${stylePrefix}鐜鍦烘櫙鍥撅紝涓嶈鍖呭惈浠讳綍浜虹墿锛?{scene.name}锛?{scene.cleanText}锛宒etailed environment, atmospheric lighting, high quality, no people, no characters, empty scene, environment only`
         const data = await generateImage({ prompt, api_key: apiKey, model, base_url: baseUrl })
         setKeyElementsImages(prev => ({
           ...prev,
@@ -1835,25 +1836,25 @@ Remember: ONLY output the 3 prompts. No other text.`
         if (missing.length > 0) {
           setAwaitingReferenceSelection(true)
           const missingList = missing.map(k => {
-            const prefix = k.startsWith('char_') ? '角色' : '场景'
+            const prefix = k.startsWith('char_') ? '瑙掕壊' : '鍦烘櫙'
             const name = k.replace(/^char_|^scene_/, '')
-            return `• ${prefix}：${name}`
+            return `鈥?${prefix}锛?{name}`
           }).join('\n')
           updateMessage(progressMsgId, {
-            content: `✅ 已生成 ${totalItems} 张图片。\n\n以下角色/场景尚未选择主参考图：\n${missingList}\n\n请点击左侧卡片中的图片，双击选择"作为主图"。满意后点击下方按钮：`,
+            content: `鉁?宸茬敓鎴?${totalItems} 寮犲浘鐗囥€俓n\n浠ヤ笅瑙掕壊/鍦烘櫙灏氭湭閫夋嫨涓诲弬鑰冨浘锛歕n${missingList}\n\n璇风偣鍑诲乏渚у崱鐗囦腑鐨勫浘鐗囷紝鍙屽嚮閫夋嫨"浣滀负涓诲浘"銆傛弧鎰忓悗鐐瑰嚮涓嬫柟鎸夐挳锛歚,
             status: 'done',
             options: [
-              { id: '__satisfied__', label: '✅ 满意，继续下一步', description: '检查主图后生成分镜图片' },
-              { id: '__regenerate__', label: '🔄 重新生成全部', description: '追加生成更多图片' },
+              { id: '__satisfied__', label: '鉁?婊℃剰锛岀户缁笅涓€姝?, description: '妫€鏌ヤ富鍥惧悗鐢熸垚鍒嗛暅鍥剧墖' },
+              { id: '__regenerate__', label: '馃攧 閲嶆柊鐢熸垚鍏ㄩ儴', description: '杩藉姞鐢熸垚鏇村鍥剧墖' },
             ],
           })
         } else {
           updateMessage(progressMsgId, {
-            content: `✅ 已生成 ${totalItems} 张图片。所有主参考图已选择！`,
+            content: `鉁?宸茬敓鎴?${totalItems} 寮犲浘鐗囥€傛墍鏈変富鍙傝€冨浘宸查€夋嫨锛乣,
             status: 'done',
             options: [
-              { id: '__confirm__', label: '✅ 生成分镜图片', description: '进入分镜图片生成' },
-              { id: '__regenerate__', label: '🔄 重新生成全部', description: '追加生成更多图片' },
+              { id: '__confirm__', label: '鉁?鐢熸垚鍒嗛暅鍥剧墖', description: '杩涘叆鍒嗛暅鍥剧墖鐢熸垚' },
+              { id: '__regenerate__', label: '馃攧 閲嶆柊鐢熸垚鍏ㄩ儴', description: '杩藉姞鐢熸垚鏇村鍥剧墖' },
             ],
           })
         }
@@ -1862,37 +1863,37 @@ Remember: ONLY output the 3 prompts. No other text.`
   }, [keyElementsContent, addMessage, updateMessage, parseKeyElementsContent, getMissingReferences])
 
   const regenerateAllKeyElements = useCallback(async () => {
-    addMessage({ role: 'user', content: '重新生成更多图片', status: 'done' })
+    addMessage({ role: 'user', content: '閲嶆柊鐢熸垚鏇村鍥剧墖', status: 'done' })
     await generateKeyElementsImages()
   }, [generateKeyElementsImages, addMessage])
 
   const confirmSatisfied = useCallback(() => {
-    addMessage({ role: 'user', content: '满意，继续下一步', status: 'done' })
+    addMessage({ role: 'user', content: '婊℃剰锛岀户缁笅涓€姝?, status: 'done' })
     const missing = getMissingReferences()
     if (missing.length > 0) {
       setAwaitingReferenceSelection(true)
       const missingList = missing.map(k => {
-        const prefix = k.startsWith('char_') ? '角色' : '场景'
+        const prefix = k.startsWith('char_') ? '瑙掕壊' : '鍦烘櫙'
         const name = k.replace(/^char_|^scene_/, '')
-        return `• ${prefix}：${name}`
+        return `鈥?${prefix}锛?{name}`
       }).join('\n')
       addMessage({
         role: 'assistant',
-        content: `以下角色/场景尚未选择主参考图：\n\n${missingList}\n\n请点击左侧卡片中的图片，双击选择"作为主图"。`,
+        content: `浠ヤ笅瑙掕壊/鍦烘櫙灏氭湭閫夋嫨涓诲弬鑰冨浘锛歕n\n${missingList}\n\n璇风偣鍑诲乏渚у崱鐗囦腑鐨勫浘鐗囷紝鍙屽嚮閫夋嫨"浣滀负涓诲浘"銆俙,
         status: 'done',
         options: [
-          { id: '__confirm__', label: '✅ 所有主图已选好，生成分镜图片', description: '开始生成分镜图片' },
-          { id: '__skip__', label: '⏭️ 使用默认图片，继续生成', description: '跳过选择，使用第一张图片作为参考' },
+          { id: '__confirm__', label: '鉁?鎵€鏈変富鍥惧凡閫夊ソ锛岀敓鎴愬垎闀滃浘鐗?, description: '寮€濮嬬敓鎴愬垎闀滃浘鐗? },
+          { id: '__skip__', label: '鈴笍 浣跨敤榛樿鍥剧墖锛岀户缁敓鎴?, description: '璺宠繃閫夋嫨锛屼娇鐢ㄧ涓€寮犲浘鐗囦綔涓哄弬鑰? },
         ],
       })
     } else {
       setAwaitingReferenceSelection(false)
       addMessage({
         role: 'assistant',
-        content: '所有主参考图已选择！点击下方按钮生成起始帧图片：',
+        content: '鎵€鏈変富鍙傝€冨浘宸查€夋嫨锛佺偣鍑讳笅鏂规寜閽敓鎴愯捣濮嬪抚鍥剧墖锛?,
         status: 'done',
         options: [
-          { id: '__confirm__', label: '🎬 生成起始帧图片', description: '为前3个镜头生成电影级起始帧' },
+          { id: '__confirm__', label: '馃幀 鐢熸垚璧峰甯у浘鐗?, description: '涓哄墠3涓暅澶寸敓鎴愮數褰辩骇璧峰甯? },
         ],
       })
     }
@@ -1904,7 +1905,7 @@ Remember: ONLY output the 3 prompts. No other text.`
       const option = VOICE_OPTIONS.find((o) => o.id === optionId)
       addMessage({ role: 'user', content: option?.label || optionId, status: 'done' })
       if (optionId === 'skip') {
-        addMessage({ role: 'assistant', content: '已跳过语音，分镜已就绪。你可以在左侧面板查看分镜详情。', status: 'done' })
+        addMessage({ role: 'assistant', content: '宸茶烦杩囪闊筹紝鍒嗛暅宸插氨缁€備綘鍙互鍦ㄥ乏渚ч潰鏉挎煡鐪嬪垎闀滆鎯呫€?, status: 'done' })
       } else {
         addMessage({ role: 'assistant', content: '\u5df2\u9009\u62e9\u300c' + (option?.label || '') + '\u300d\uff0c\u8bed\u97f3\u751f\u6210\u529f\u80fd\u5373\u5c06\u4e0a\u7ebf\u3002\u5206\u955c\u5df2\u5c31\u7eea\u3002', status: 'done' })
       }
@@ -1916,8 +1917,8 @@ Remember: ONLY output the 3 prompts. No other text.`
   // Voice generation constants
   const CHARACTER_COLORS = ['#00aaff', '#ff6b6b', '#51cf66', '#ffd43b', '#cc5de8', '#ff922b', '#20c997', '#f06595']
   const VOICE_POOLS = {
-    male: ['白桦', '苏打'],
-    female: ['冰糖', '茉莉'],
+    male: ['鐧芥ˇ', '鑻忔墦'],
+    female: ['鍐扮硸', '鑼夎帀'],
   }
   
   const getCharacterGender = useCallback((characterName: string): 'male' | 'female' => {
@@ -1925,7 +1926,7 @@ Remember: ONLY output the 3 prompts. No other text.`
     
     const escapedName = characterName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const regex = new RegExp(
-      `### (主角|配角)[：:]\\s*${escapedName}[\\s\\S]*?(?=### |$)`,
+      `### (涓昏|閰嶈)[锛?]\\s*${escapedName}[\\s\\S]*?(?=### |$)`,
       'i'
     )
     const match = keyElementsContent.match(regex)
@@ -1933,14 +1934,14 @@ Remember: ONLY output the 3 prompts. No other text.`
     
     const section = match[0]
     
-    const maleKeywords = /男|男生|男性|男孩|少年|男子|青年|男士|帅哥|大叔|爷爷|父亲|爸爸|哥哥|弟弟|先生|男主/
-    const femaleKeywords = /女|女生|女性|女孩|少女|女子|姑娘|女士|美女|阿姨|奶奶|母亲|妈妈|姐姐|妹妹|小姐|女主/
+    const maleKeywords = /鐢穦鐢风敓|鐢锋€鐢峰|灏戝勾|鐢峰瓙|闈掑勾|鐢峰＋|甯呭摜|澶у彅|鐖风埛|鐖朵翰|鐖哥埜|鍝ュ摜|寮熷紵|鍏堢敓|鐢蜂富/
+    const femaleKeywords = /濂硘濂崇敓|濂虫€濂冲|灏戝コ|濂冲瓙|濮戝|濂冲＋|缇庡コ|闃垮Ж|濂跺ザ|姣嶄翰|濡堝|濮愬|濡瑰|灏忓|濂充富/
     
     if (maleKeywords.test(section)) return 'male'
     if (femaleKeywords.test(section)) return 'female'
     
-    const roleMatch = section.match(/### (主角|配角)/)
-    return roleMatch && roleMatch[1] === '主角' ? 'male' : 'female'
+    const roleMatch = section.match(/### (涓昏|閰嶈)/)
+    return roleMatch && roleMatch[1] === '涓昏' ? 'male' : 'female'
   }, [keyElementsContent])
   
   const getVoiceForCharacter = useCallback((characterName: string, isRegenerate = false): string => {
@@ -1964,7 +1965,7 @@ Remember: ONLY output the 3 prompts. No other text.`
     
     const lines = dialogueContent.split('\n')
     for (const line of lines) {
-      const match = line.match(/^[（(]?([^）)]+)[）)]?\s*[：:]\s*(.+)/)
+      const match = line.match(/^[锛?]?([^锛?]+)[锛?]?\s*[锛?]\s*(.+)/)
       if (match) {
         const speaker = match[1].trim()
         if (speaker.includes(characterName) || characterName.includes(speaker)) {
@@ -1977,14 +1978,14 @@ Remember: ONLY output the 3 prompts. No other text.`
 
   const generateVoiceForCharacter = useCallback(async (characterName: string, isRegenerate = false) => {
     const keys = loadApiKeys()
-    const voiceModel = keys.voice_model || 'mimo-v2.5-tts'
+    const voiceModel = keys.voice_model || DEFAULTS.TTS_MODEL
     const useSame = keys.voice_use_same !== 'false'
     
     const apiKey = useSame ? keys.text : (keys.voice_api_key || keys.text)
     const baseUrl = useSame ? keys.base_url : (keys.voice_base_url || keys.base_url)
     
     if (!apiKey) {
-      addMessage({ role: 'assistant', content: '请先配置 API Key。', status: 'error' })
+      addMessage({ role: 'assistant', content: '璇峰厛閰嶇疆 API Key銆?, status: 'error' })
       return
     }
     
@@ -2062,7 +2063,7 @@ Remember: ONLY output the 3 prompts. No other text.`
 
   const generateAllVoiceTracks = useCallback(async () => {
     if (!keyElementsContent) {
-      addMessage({ role: 'assistant', content: '没有关键元素内容，无法提取角色。', status: 'error' })
+      addMessage({ role: 'assistant', content: '娌℃湁鍏抽敭鍏冪礌鍐呭锛屾棤娉曟彁鍙栬鑹层€?, status: 'error' })
       return
     }
     
@@ -2071,11 +2072,11 @@ Remember: ONLY output the 3 prompts. No other text.`
     
     for (const section of sections) {
       const headingMatch = section.match(/^## (.+)$/m)
-      if (!headingMatch || !headingMatch[1].includes('角色形象')) continue
+      if (!headingMatch || !headingMatch[1].includes('瑙掕壊褰㈣薄')) continue
       
       const subSections = section.split(/(?=^### )/m)
       for (const sub of subSections) {
-        const subMatch = sub.match(/^### (主角|配角)[：:](.+)$/m)
+        const subMatch = sub.match(/^### (涓昏|閰嶈)[锛?](.+)$/m)
         if (subMatch) {
           characterNames.push(subMatch[2].trim())
         }
@@ -2083,7 +2084,7 @@ Remember: ONLY output the 3 prompts. No other text.`
     }
     
     if (characterNames.length === 0) {
-      addMessage({ role: 'assistant', content: '未找到角色信息。', status: 'error' })
+      addMessage({ role: 'assistant', content: '鏈壘鍒拌鑹蹭俊鎭€?, status: 'error' })
       return
     }
     
@@ -2102,7 +2103,7 @@ Remember: ONLY output the 3 prompts. No other text.`
   const generateAllVideos = useCallback(async () => {
     const frames = parseStoryboardFrames(storyboardContent)
     if (frames.length === 0) {
-      addMessage({ role: 'assistant', content: '没有镜头数据，无法生成视频。', status: 'error' })
+      addMessage({ role: 'assistant', content: '娌℃湁闀滃ご鏁版嵁锛屾棤娉曠敓鎴愯棰戙€?, status: 'error' })
       return
     }
 
@@ -2111,10 +2112,30 @@ Remember: ONLY output the 3 prompts. No other text.`
 
     const keys = loadApiKeys()
     const videoApiKey = keys.video_api_key || keys.image_api_key || keys.text
-    const videoModel = keys.video_model || 'agnes-video-v2.0'
-    const videoBaseUrl = keys.video_base_url || keys.image_base_url || 'https://apihub.agnes-ai.com/v1'
+    const videoModel = keys.video_model || DEFAULTS.VIDEO_MODEL
+    const videoBaseUrl = keys.video_base_url || keys.image_base_url || DEFAULTS.VIDEO_BASE_URL
 
-    // 计算总图片数
+    // Debug: log video generation parameters
+    console.log('[Video] Config:', {
+      video_api_key: keys.video_api_key ? 'SET' : 'EMPTY',
+      image_api_key: keys.image_api_key ? 'SET' : 'EMPTY',
+      text_key: keys.text ? 'SET' : 'EMPTY',
+      videoApiKey: videoApiKey ? 'SET' : 'EMPTY',
+      videoModel,
+      videoBaseUrl,
+    })
+
+    if (!videoApiKey) {
+      addMessage({ 
+        role: 'assistant', 
+        content: '⚠️ 未配置视频API密钥！请在设置中配置视频API Key（或图像API Key）。', 
+        status: 'error' 
+      })
+      setGeneratingVideo(false)
+      return
+    }
+
+    // 璁＄畻鎬诲浘鐗囨暟
     let totalImages = 0
     for (let i = 0; i < frames.length; i++) {
       const frameImages = keyFramesImages[i]
@@ -2123,7 +2144,7 @@ Remember: ONLY output the 3 prompts. No other text.`
 
     const progressMsgId = addMessage({
       role: 'assistant',
-      content: `正在为 ${frames.length} 个镜头的 ${totalImages} 张图片生成视频...`,
+      content: `姝ｅ湪涓?${frames.length} 涓暅澶寸殑 ${totalImages} 寮犲浘鐗囩敓鎴愯棰?..`,
       status: 'generating',
     })
 
@@ -2138,19 +2159,33 @@ Remember: ONLY output the 3 prompts. No other text.`
         continue
       }
 
-      // 遍历每张图片生成视频
+      // 閬嶅巻姣忓紶鍥剧墖鐢熸垚瑙嗛
       for (let imgIdx = 0; imgIdx < frameImages.length; imgIdx++) {
         const imageUrl = frameImages[imgIdx]
         const key = `${i}_${imgIdx}`
 
         updateMessage(progressMsgId, {
-          content: `正在为镜头 ${i + 1}/${frames.length} 图片 ${imgIdx + 1}/${frameImages.length} 生成视频... (${completedCount + 1}/${totalImages})`,
+          content: `姝ｅ湪涓洪暅澶?${i + 1}/${frames.length} 鍥剧墖 ${imgIdx + 1}/${frameImages.length} 鐢熸垚瑙嗛... (${completedCount + 1}/${totalImages})`,
         })
 
         try {
           const charPinyin = toPinyin(frame.characterName || 'character')
           const coreAction = extractAction(frame.content || frame.title)
           const videoPrompt = `cinematic film still with subtle breathing motion, ${charPinyin} ${coreAction}, ${frame.sceneName || 'scene'} environment, dramatic lighting, moody atmosphere, shallow depth of field, smooth animation`
+
+          console.log(`[Video] Generating for frame ${i + 1} img ${imgIdx + 1}:`, {
+            image_url: imageUrl?.substring(0, 80) + '...',
+            videoApiKey: videoApiKey ? 'SET' : 'EMPTY',
+            videoBaseUrl,
+            videoModel,
+          })
+
+          console.log([Video] Generating for frame  img :, {
+            image_url: imageUrl?.substring(0, 80) + '...',
+            videoApiKey: videoApiKey ? 'SET' : 'EMPTY',
+            videoBaseUrl,
+            videoModel,
+          })
 
           const result = await generateVideo({
             image_url: imageUrl,
@@ -2163,7 +2198,12 @@ Remember: ONLY output the 3 prompts. No other text.`
           setKeyFrameVideos(prev => ({ ...prev, [key]: result.video_url }))
           console.log(`[Video] Frame ${i + 1} img ${imgIdx + 1} success`)
         } catch (err) {
-          console.error(`[Video] Frame ${i + 1} img ${imgIdx + 1} failed:`, err)
+          const errMsg = err instanceof Error ? err.message : String(err)
+          console.error(`[Video] Frame ${i + 1} img ${imgIdx + 1} failed:`, errMsg)
+          updateMessage(progressMsgId, {
+            content: `❌ 镜头 ${i + 1} 图片 ${imgIdx + 1} 失败: ${errMsg}`,
+            status: 'error',
+          })
         }
 
         completedCount++
@@ -2171,13 +2211,13 @@ Remember: ONLY output the 3 prompts. No other text.`
     }
 
     updateMessage(progressMsgId, {
-      content: `✅ 视频生成完成！共 ${totalImages} 个视频`,
+      content: `鉁?瑙嗛鐢熸垚瀹屾垚锛佸叡 ${totalImages} 涓棰慲,
       status: 'done',
     })
 
     addMessage({
       role: 'assistant',
-      content: `🎬 所有 ${totalImages} 个视频已生成！`,
+      content: `馃幀 鎵€鏈?${totalImages} 涓棰戝凡鐢熸垚锛乣,
       status: 'done',
     })
 
@@ -2198,10 +2238,10 @@ Remember: ONLY output the 3 prompts. No other text.`
       setPhase('video_ready')
       addMessage({
         role: 'assistant',
-        content: '音色已确认！现在可以开始生成视频了。点击下方按钮开始：',
+        content: '闊宠壊宸茬‘璁わ紒鐜板湪鍙互寮€濮嬬敓鎴愯棰戜簡銆傜偣鍑讳笅鏂规寜閽紑濮嬶細',
         status: 'done',
         actions: [
-          { id: 'generate_video', label: '🎬 开始生成视频', description: '为每个镜头生成动态视频' },
+          { id: 'generate_video', label: '馃幀 寮€濮嬬敓鎴愯棰?, description: '涓烘瘡涓暅澶寸敓鎴愬姩鎬佽棰? },
         ],
       })
       saveProject()
@@ -2408,32 +2448,32 @@ Remember: ONLY output the 3 prompts. No other text.`
 
 function parseScriptDraft(content: string): ScriptDraftData {
   const defaultDraft: ScriptDraftData = {
-    title: '未命名剧本',
-    type: '剧情短片',
-    duration: '1-2分钟',
-    tone: '中性',
+    title: '鏈懡鍚嶅墽鏈?,
+    type: '鍓ф儏鐭墖',
+    duration: '1-2鍒嗛挓',
+    tone: '涓€?,
     characters: [],
     scenes: [],
     synopsis: '',
   }
 
   try {
-    const titleMatch = content.match(/📜\s*\*?\*?([^*\n]+)/)
+    const titleMatch = content.match(/馃摐\s*\*?\*?([^*\n]+)/)
     if (titleMatch) defaultDraft.title = titleMatch[1].trim()
 
-    const typeMatch = content.match(/类型[：:]\s*(.+)/)
+    const typeMatch = content.match(/绫诲瀷[锛?]\s*(.+)/)
     if (typeMatch) defaultDraft.type = typeMatch[1].trim()
 
-    const durationMatch = content.match(/时长[：:]\s*(.+)/)
+    const durationMatch = content.match(/鏃堕暱[锛?]\s*(.+)/)
     if (durationMatch) defaultDraft.duration = durationMatch[1].trim()
 
-    const toneMatch = content.match(/基调[：:]\s*(.+)/)
+    const toneMatch = content.match(/鍩鸿皟[锛?]\s*(.+)/)
     if (toneMatch) defaultDraft.tone = toneMatch[1].trim()
 
-    const synopsisMatch = content.match(/故事梗概[：:]\s*([\s\S]*?)(?=\n---|\n人物|$)/)
+    const synopsisMatch = content.match(/鏁呬簨姊楁[锛?]\s*([\s\S]*?)(?=\n---|\n浜虹墿|$)/)
     if (synopsisMatch) defaultDraft.synopsis = synopsisMatch[1].trim().slice(0, 200)
 
-    const characterRegex = /👤\s*\*?\*?([^*—]+)\*?\*?\s*[—–-]\s*(.+)/g
+    const characterRegex = /馃懁\s*\*?\*?([^*鈥擼+)\*?\*?\s*[鈥斺€?]\s*(.+)/g
     let charMatch
     while ((charMatch = characterRegex.exec(content)) !== null) {
       defaultDraft.characters.push({
@@ -2443,17 +2483,17 @@ function parseScriptDraft(content: string): ScriptDraftData {
       })
     }
 
-    const sceneRegex = /\*\*第[一二三四五六七八九十\d]+幕[：:]\s*(.+?)\*\*\s*\n([\s\S]*?)(?=\*\*第[一二三四五六七八九十\d]+幕|\*\*关键转折|\*\*结局|$)/g
+    const sceneRegex = /\*\*绗琜涓€浜屼笁鍥涗簲鍏竷鍏節鍗乗d]+骞昜锛?]\s*(.+?)\*\*\s*\n([\s\S]*?)(?=\*\*绗琜涓€浜屼笁鍥涗簲鍏竷鍏節鍗乗d]+骞晐\*\*鍏抽敭杞姌|\*\*缁撳眬|$)/g
     let sceneMatch
     let actNum = 1
     while ((sceneMatch = sceneRegex.exec(content)) !== null) {
       const title = sceneMatch[1].trim()
       const body = sceneMatch[2].trim()
-      const sceneMatch2 = body.match(/场景[：:]\s*([\s\S]*?)(?=人物[：:]|事件[：:]|冲突[：:]|预计时长|$)/)
-      const characterMatch = body.match(/人物[：:]\s*([\s\S]*?)(?=事件[：:]|冲突[：:]|预计时长|$)/)
-      const eventMatch = body.match(/事件[：:]\s*([\s\S]*?)(?=冲突[：:]|预计时长|$)/)
-      const conflictMatch = body.match(/冲突[：:]\s*([\s\S]*?)(?=预计时长|$)/)
-      const durationMatch2 = body.match(/预计时长[：:]\s*(.+)/)
+      const sceneMatch2 = body.match(/鍦烘櫙[锛?]\s*([\s\S]*?)(?=浜虹墿[锛?]|浜嬩欢[锛?]|鍐茬獊[锛?]|棰勮鏃堕暱|$)/)
+      const characterMatch = body.match(/浜虹墿[锛?]\s*([\s\S]*?)(?=浜嬩欢[锛?]|鍐茬獊[锛?]|棰勮鏃堕暱|$)/)
+      const eventMatch = body.match(/浜嬩欢[锛?]\s*([\s\S]*?)(?=鍐茬獊[锛?]|棰勮鏃堕暱|$)/)
+      const conflictMatch = body.match(/鍐茬獊[锛?]\s*([\s\S]*?)(?=棰勮鏃堕暱|$)/)
+      const durationMatch2 = body.match(/棰勮鏃堕暱[锛?]\s*(.+)/)
       const sceneContent = [
         sceneMatch2 ? '\u573a\u666f\uff1a' + sceneMatch2[1].trim() : '',
         characterMatch ? '\u4eba\u7269\uff1a' + characterMatch[1].trim() : '',
@@ -2469,14 +2509,14 @@ function parseScriptDraft(content: string): ScriptDraftData {
     }
 
     if (defaultDraft.scenes.length === 0) {
-      const simpleRegex = /第[一二三四五六七八九十\d]+幕[：:]\s*(.+?)(?:\n|$)/g
+      const simpleRegex = /绗琜涓€浜屼笁鍥涗簲鍏竷鍏節鍗乗d]+骞昜锛?]\s*(.+?)(?:\n|$)/g
       let simpleMatch
       let simpleNum = 1
       while ((simpleMatch = simpleRegex.exec(content)) !== null) {
         const title = simpleMatch[1].trim()
         const nextLineIndex = content.indexOf(simpleMatch[0]) + simpleMatch[0].length
         const remaining = content.slice(nextLineIndex)
-        const bodyMatch = remaining.match(/([\s\S]*?)(?=第[一二三四五六七八九十\d]+幕[：:]|关键转折|结局|$)/)
+        const bodyMatch = remaining.match(/([\s\S]*?)(?=绗琜涓€浜屼笁鍥涗簲鍏竷鍏節鍗乗d]+骞昜锛?]|鍏抽敭杞姌|缁撳眬|$)/)
         const body = bodyMatch ? bodyMatch[1].trim() : ''
         defaultDraft.scenes.push({
           act: simpleNum++,
@@ -2487,7 +2527,7 @@ function parseScriptDraft(content: string): ScriptDraftData {
     }
 
     if (defaultDraft.scenes.length === 0) {
-      const shotRegex = /^\*\*镜([一二三四五六七八九十\d]+)\s*[·\-]?\s*([^（]*)\s*（([^）]*)）\*\*/gm
+      const shotRegex = /^\*\*闀?[涓€浜屼笁鍥涗簲鍏竷鍏節鍗乗d]+)\s*[路\-]?\s*([^锛圿*)\s*锛?[^锛塢*)锛塡*\*/gm
       let shotMatch
       let shotNum = 1
       while ((shotMatch = shotRegex.exec(content)) !== null) {
@@ -2505,3 +2545,6 @@ function parseScriptDraft(content: string): ScriptDraftData {
 
   return defaultDraft
 }
+
+
+

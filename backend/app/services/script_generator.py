@@ -3,12 +3,13 @@ import json
 import logging
 import httpx
 from typing import AsyncGenerator
+from app.core import defaults
 
 logger = logging.getLogger(__name__)
 
-MIMO_API_BASE = os.getenv("MIMO_API_BASE", "https://api.mimo.com/v1")
+MIMO_API_BASE = os.getenv("MIMO_API_BASE", defaults.CHAT_BASE_URL)
 MIMO_API_KEY = os.getenv("MIMO_API_KEY", "")
-MIMO_MODEL = os.getenv("MIMO_MODEL", "mimo-v2.5")
+MIMO_MODEL = os.getenv("MIMO_MODEL", defaults.CHAT_MODEL)
 
 SCRIPT_PROMPT_TEMPLATE = """You are a professional manga storyboard writer. Based on the user's idea, generate a detailed script in JSON format.
 
@@ -58,7 +59,7 @@ def _get_api_key() -> str:
 
 
 def _get_api_base() -> str:
-    if MIMO_API_BASE != "https://api.mimo.com/v1":
+    if MIMO_API_BASE != defaults.CHAT_BASE_URL:
         return MIMO_API_BASE
     try:
         from ..core.security import get_secure_executor
@@ -69,7 +70,7 @@ def _get_api_base() -> str:
 
 
 def _get_model() -> str:
-    if MIMO_MODEL != "mimo-v2.5":
+    if MIMO_MODEL != defaults.CHAT_MODEL:
         return MIMO_MODEL
     try:
         from ..core.security import get_secure_executor
