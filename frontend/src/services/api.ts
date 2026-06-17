@@ -346,7 +346,7 @@ export async function generateVoice(data: {
 
 export interface VideoTaskResponse {
   task_id: string
-  id_type: string
+  video_id?: string
   status: string
 }
 
@@ -381,14 +381,17 @@ export async function generateVideo(data: {
     timeout: 30000,
   })
 
-  console.log(`[Video] Task created: ${task.id_type}=${task.task_id}`)
+  console.log(`[Video] Task created: task_id=${task.task_id}, video_id=${task.video_id}`)
 
   // 2. 轮询查询状态（每5秒查一次，最多120次 = 10分钟）
+  // 优先使用 video_id 查询（Agnes AI 推荐方式）
   const params = new URLSearchParams({
     api_key: data.api_key,
     base_url: data.base_url || '',
-    id_type: task.id_type,
   })
+  if (task.video_id) {
+    params.set('video_id', task.video_id)
+  }
 
   for (let attempt = 0; attempt < 120; attempt++) {
     await sleep(5000)
