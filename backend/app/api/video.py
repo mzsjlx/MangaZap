@@ -143,12 +143,16 @@ async def get_video_status(
     - 视频URL字段: remixed_from_video_id
     """
     base = base_url.rstrip('/')
+    # Agnes 轮询 URL 不带 /v1，创建任务 URL 带 /v1
+    # 创建: {base}/videos = https://apihub.agnes-ai.com/v1/videos
+    # 轮询: https://apihub.agnes-ai.com/agnesapi?video_id=xxx (无 /v1)
+    base_no_v1 = base.rstrip('/').replace('/v1', '').rstrip('/')
 
     # 优先使用 video_id 查询（推荐方式）
     if video_id:
-        poll_url = f"{base}/agnesapi?video_id={video_id}"
+        poll_url = f"{base_no_v1}/agnesapi?video_id={video_id}"
     else:
-        poll_url = f"{base}/v1/videos/{task_id}"
+        poll_url = f"{base_no_v1}/v1/videos/{task_id}"
 
     print(f"[video] POLL {poll_url}")
 
@@ -161,9 +165,26 @@ async def get_video_status(
             result.raise_for_status()
             data = result.json()
 
+            # 打印完整响应用于诊断
+            print(f"[video] === FULL RESPONSE ===")
+            print(f"[video] {json.dumps(data, ensure_ascii=False, default=str)}")
+            print(f"[video] === ALL KEYS: {list(data.keys())} ===")
+
             status = data.get("status", "unknown")
             print(f"[video] Status: {status}")
-            print(f"[video] Response: {json.dumps(data, ensure_ascii=False, default=str)[:500]}")
+
+            # 检查隐藏错误字段
+            error_field = data.get("error")
+            message_field = data.get("message")
+            detail_field = data.get("detail")
+            progress_field = data.get("progress")
+            created_at = data.get("created_at")
+
+            if error_field: print(f"[video] ERROR FIELD: {error_field}")
+            if message_field: print(f"[video] MESSAGE FIELD: {message_field}")
+            if detail_field: print(f"[video] DETAIL FIELD: {detail_field}")
+            if progress_field is not None: print(f"[video] PROGRESS: {progress_field}")
+            if created_at: print(f"[video] CREATED_AT: {created_at}")
 
             # 完成
             if status == "completed":

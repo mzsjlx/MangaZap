@@ -60,6 +60,7 @@ class ConversationState(BaseModel):
     keyElementsImages: Dict[str, Any] = {}
     shotImages: Dict[str, Any] = {}
     keyFramesImages: Dict[str, Any] = {}
+    keyFrameVideos: Dict[str, str] = {}
     selectedReferenceImages: Dict[str, str] = {}
     awaitingReferenceSelection: bool = False
     voiceTracks: Dict[str, Any] = {}

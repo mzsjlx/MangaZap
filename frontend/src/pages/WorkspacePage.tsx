@@ -659,6 +659,8 @@ export default function WorkspacePage() {
                     onImageClick={handleImageClick}
                     keyElementsImages={conversation.keyElementsImages}
                     keyFramesImages={conversation.keyFramesImages}
+                    keyFrameVideos={conversation.keyFrameVideos}
+                    onPlayVideo={(url) => { setPreviewVideoUrl(url); setPreviewImageUrl(null); }}
                   />
                   {narrationContent && (
                     <div className="rounded-xl p-4 border border-white/[0.06]" style={{ background: 'linear-gradient(135deg, #101828 0%, #0c1020 100%)' }}>
@@ -734,6 +736,8 @@ export default function WorkspacePage() {
                     onImageClick={handleImageClick}
                     keyElementsImages={conversation.keyElementsImages}
                     keyFramesImages={conversation.keyFramesImages}
+                    keyFrameVideos={conversation.keyFrameVideos}
+                    onPlayVideo={(url) => { setPreviewVideoUrl(url); setPreviewImageUrl(null); }}
                   />
                   {narrationContent && (
                     <div className="rounded-xl p-4 border border-white/[0.06]" style={{ background: 'linear-gradient(135deg, #101828 0%, #0c1020 100%)' }}>
@@ -750,7 +754,8 @@ export default function WorkspacePage() {
               <div className="w-1/2 h-full flex flex-col rounded-lg border border-white/[0.06] bg-[#0a0e18] p-2">
                 <BrowseArea 
                   previewImageUrl={previewImageUrl} 
-                  onClosePreview={() => setPreviewImageUrl(null)}
+                  previewVideoUrl={previewVideoUrl}
+                  onClosePreview={() => { setPreviewImageUrl(null); setPreviewVideoUrl(null) }}
                   modifyRequest={modifyRequest}
                   onModifyRequestChange={setModifyRequest}
                   onRegenerate={previewItemKey ? handleRegenerateImage : undefined}
@@ -821,7 +826,8 @@ export default function WorkspacePage() {
               <div className="flex-[2] flex flex-col rounded-lg border border-white/[0.06] bg-[#0a0e18] p-2">
                 <BrowseArea 
                   previewImageUrl={previewImageUrl} 
-                  onClosePreview={() => setPreviewImageUrl(null)}
+                  previewVideoUrl={previewVideoUrl}
+                  onClosePreview={() => { setPreviewImageUrl(null); setPreviewVideoUrl(null) }}
                   modifyRequest={modifyRequest}
                   onModifyRequestChange={setModifyRequest}
                   onRegenerate={previewItemKey ? handleRegenerateImage : undefined}
@@ -867,7 +873,8 @@ export default function WorkspacePage() {
               <div className="w-1/2 h-full flex flex-col rounded-lg border border-white/[0.06] bg-[#0a0e18] p-2">
                 <BrowseArea 
                   previewImageUrl={previewImageUrl} 
-                  onClosePreview={() => setPreviewImageUrl(null)}
+                  previewVideoUrl={previewVideoUrl}
+                  onClosePreview={() => { setPreviewImageUrl(null); setPreviewVideoUrl(null) }}
                   modifyRequest={modifyRequest}
                   onModifyRequestChange={setModifyRequest}
                   onRegenerate={previewItemKey ? handleRegenerateImage : undefined}
@@ -889,7 +896,8 @@ export default function WorkspacePage() {
               <div className="h-full flex flex-col rounded-lg border border-white/[0.06] bg-[#0a0e18] p-2">
                 <BrowseArea 
                   previewImageUrl={previewImageUrl} 
-                  onClosePreview={() => setPreviewImageUrl(null)}
+                  previewVideoUrl={previewVideoUrl}
+                  onClosePreview={() => { setPreviewImageUrl(null); setPreviewVideoUrl(null) }}
                   modifyRequest={modifyRequest}
                   onModifyRequestChange={setModifyRequest}
                   onRegenerate={previewItemKey ? handleRegenerateImage : undefined}
